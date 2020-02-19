@@ -85,7 +85,7 @@ ATOM MyRegisterClass( HINSTANCE hInstance )
     return RegisterClassExW( &wcex );
 }
 
-DX12App globalApplication;
+Olex::DX12App globalApplication;
 
 //
 //   FUNCTION: InitInstance(HINSTANCE, int)

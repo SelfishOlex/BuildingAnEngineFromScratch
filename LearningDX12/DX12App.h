@@ -7,53 +7,60 @@
 
 #include "framework.h"
 
-class DX12App
+namespace Olex
 {
-public:
-    DX12App();
+    class DX12App
+    {
+    public:
+        DX12App();
 
-    void Init();
+        void Init();
 
-private:
+        void EnableDebugLayer();
 
-    // The number of swap chain back buffers.
-    static constexpr uint8_t g_NumFrames = 3;
-    // Use WARP adapter
-    bool g_UseWarp = false;
+        void ThrowIfFailed (HRESULT hr);
 
-    uint32_t g_ClientWidth = 1280;
-    uint32_t g_ClientHeight = 720;
+    private:
 
-    // Set to true once the DX12 objects have been initialized.
-    bool g_IsInitialized = false;
+        // The number of swap chain back buffers.
+        static constexpr uint8_t g_NumFrames = 3;
+        // Use WARP adapter
+        bool g_UseWarp = false;
 
-    // Window handle.
-    HWND g_hWnd;
-    // Window rectangle (used to toggle fullscreen state).
-    RECT g_WindowRect;
+        uint32_t g_ClientWidth = 1280;
+        uint32_t g_ClientHeight = 720;
 
-    // DirectX 12 Objects
-    Microsoft::WRL::ComPtr<ID3D12Device2> g_Device;
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> g_CommandQueue;
-    Microsoft::WRL::ComPtr<IDXGISwapChain4> g_SwapChain;
-    Microsoft::WRL::ComPtr<ID3D12Resource> g_BackBuffers[g_NumFrames];
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> g_CommandList;
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> g_CommandAllocators[g_NumFrames];
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> g_RTVDescriptorHeap;
-    UINT g_RTVDescriptorSize;
-    UINT g_CurrentBackBufferIndex;
+        // Set to true once the DX12 objects have been initialized.
+        bool g_IsInitialized = false;
 
-    // Synchronization objects
-    Microsoft::WRL::ComPtr<ID3D12Fence> g_Fence;
-    uint64_t g_FenceValue = 0;
-    uint64_t g_FrameFenceValues[g_NumFrames] = {};
-    HANDLE g_FenceEvent;
+        // Window handle.
+        HWND g_hWnd;
+        // Window rectangle (used to toggle fullscreen state).
+        RECT g_WindowRect;
 
-    // By default, enable V-Sync.
-    // Can be toggled with the V key.
-    bool g_VSync = true;
-    bool g_TearingSupported = false;
-    // By default, use windowed mode.
-    // Can be toggled with the Alt+Enter or F11
-    bool g_Fullscreen = false;
-};
+        // DirectX 12 Objects
+        Microsoft::WRL::ComPtr<ID3D12Device2> g_Device;
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> g_CommandQueue;
+        Microsoft::WRL::ComPtr<IDXGISwapChain4> g_SwapChain;
+        Microsoft::WRL::ComPtr<ID3D12Resource> g_BackBuffers[g_NumFrames];
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> g_CommandList;
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> g_CommandAllocators[g_NumFrames];
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> g_RTVDescriptorHeap;
+        UINT g_RTVDescriptorSize;
+        UINT g_CurrentBackBufferIndex;
+
+        // Synchronization objects
+        Microsoft::WRL::ComPtr<ID3D12Fence> g_Fence;
+        uint64_t g_FenceValue = 0;
+        uint64_t g_FrameFenceValues[g_NumFrames] = {};
+        HANDLE g_FenceEvent;
+
+        // By default, enable V-Sync.
+        // Can be toggled with the V key.
+        bool g_VSync = true;
+        bool g_TearingSupported = false;
+        // By default, use windowed mode.
+        // Can be toggled with the Alt+Enter or F11
+        bool g_Fullscreen = false;
+    };
+}
