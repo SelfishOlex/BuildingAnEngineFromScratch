@@ -28,6 +28,9 @@ namespace Olex
         m_Device = CreateDevice( adapter );
         m_CommandQueue = CreateCommandQueue( m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT );
         m_SwapChain = CreateSwapChain( m_hWnd, m_CommandQueue, m_ClientWidth, m_ClientHeight, m_NumFrames );
+        m_RTVDescriptorHeap = CreateDescriptorHeap( m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, m_RTVDescriptorSize );
+        CreateRenderTargetViews( m_Device, m_SwapChain, m_RTVDescriptorHeap );
+        m_CommandAllocators[0] = CreateCommandAllocator( m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT );
     }
 
     void DX12App::EnableDebugLayer()
@@ -230,5 +233,103 @@ namespace Olex
         ThrowIfFailed( swapChain1.As( &dxgiSwapChain4 ) );
 
         return dxgiSwapChain4;
+    }
+
+    ComPtr<ID3D12DescriptorHeap> DX12App::CreateDescriptorHeap( ComPtr<ID3D12Device2> device,
+        D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors )
+    {
+        ComPtr<ID3D12DescriptorHeap> descriptorHeap;
+
+        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+        desc.NumDescriptors = numDescriptors;
+        desc.Type = type;
+
+        ThrowIfFailed( device->CreateDescriptorHeap( &desc, IID_PPV_ARGS( &descriptorHeap ) ) );
+
+        return descriptorHeap;
+    }
+
+    void DX12App::CreateRenderTargetViews( ComPtr<ID3D12Device2> device,
+        ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap )
+    {
+        m_RTVDescriptorSize = device->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_RTV );
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle( descriptorHeap->GetCPUDescriptorHandleForHeapStart() );
+
+        for ( int i = 0; i < m_NumFrames; ++i )
+        {
+            ComPtr<ID3D12Resource> backBuffer;
+            ThrowIfFailed( swapChain->GetBuffer( i, IID_PPV_ARGS( &backBuffer ) ) );
+
+            device->CreateRenderTargetView( backBuffer.Get(), nullptr, rtvHandle );
+
+            m_BackBuffers[i] = backBuffer;
+
+            rtvHandle.Offset( m_RTVDescriptorSize );
+        }
+    }
+
+    ComPtr<ID3D12CommandAllocator> DX12App::CreateCommandAllocator( ComPtr<ID3D12Device2> device,
+        D3D12_COMMAND_LIST_TYPE type )
+    {
+        ComPtr<ID3D12CommandAllocator> commandAllocator;
+        ThrowIfFailed( device->CreateCommandAllocator( type, IID_PPV_ARGS( &commandAllocator ) ) );
+
+        return commandAllocator;
+    }
+
+    ComPtr<ID3D12GraphicsCommandList> DX12App::CreateCommandList( ComPtr<ID3D12Device2> device,
+        ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type )
+    {
+        ComPtr<ID3D12GraphicsCommandList> commandList;
+        ThrowIfFailed( device->CreateCommandList( 0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS( &commandList ) ) );
+
+        ThrowIfFailed( commandList->Close() );
+
+        return commandList;
+    }
+
+    ComPtr<ID3D12Fence> DX12App::CreateFence( ComPtr<ID3D12Device2> device )
+    {
+        ComPtr<ID3D12Fence> fence;
+
+        ThrowIfFailed( device->CreateFence( 0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS( &fence ) ) );
+
+        return fence;
+    }
+
+    HANDLE DX12App::CreateEventHandle()
+    {
+        HANDLE fenceEvent;
+
+        fenceEvent = ::CreateEvent( NULL, FALSE, FALSE, NULL );
+        assert( fenceEvent && "Failed to create fence event." );
+
+        return fenceEvent;
+    }
+
+    uint64_t DX12App::Signal( ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence,
+        uint64_t& fenceValue )
+    {
+        uint64_t fenceValueForSignal = ++fenceValue;
+        ThrowIfFailed( commandQueue->Signal( fence.Get(), fenceValueForSignal ) );
+
+        return fenceValueForSignal;
+    }
+
+    void DX12App::WaitForFenceValue( ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent, std::chrono::milliseconds duration )
+    {
+        if ( fence->GetCompletedValue() < fenceValue )
+        {
+            ThrowIfFailed( fence->SetEventOnCompletion( fenceValue, fenceEvent ) );
+            ::WaitForSingleObject( fenceEvent, static_cast<DWORD>( duration.count() ) );
+        }
+    }
+
+    void DX12App::Flush( ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence,
+        uint64_t& fenceValue, HANDLE fenceEvent )
+    {
+        uint64_t fenceValueForSignal = Signal( commandQueue, fence, fenceValue );
+        WaitForFenceValue( fence, fenceValueForSignal, fenceEvent );
     }
 }

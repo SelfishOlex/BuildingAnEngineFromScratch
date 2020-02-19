@@ -109,10 +109,10 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
         return FALSE;
     }
 
+    globalApplication.Init(hWnd);
+
     ShowWindow( hWnd, nCmdShow );
     UpdateWindow( hWnd );
-
-    globalApplication.Init(hWnd);
 
     return TRUE;
 }
