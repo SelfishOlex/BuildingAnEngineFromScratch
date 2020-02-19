@@ -27,9 +27,18 @@
     <ClInclude Include="LearningDX12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DX12App.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="d3dx12.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LearningDX12.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DX12App.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

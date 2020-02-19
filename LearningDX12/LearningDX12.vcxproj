@@ -147,12 +147,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="DX12App.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LearningDX12.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="LearningDX12.cpp" />
   </ItemGroup>
   <ItemGroup>
