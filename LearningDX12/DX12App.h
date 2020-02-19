@@ -15,15 +15,26 @@ namespace Olex
     public:
         DX12App();
 
-        void Init();
+        void Init(HWND windowsHandle);
 
     protected:
 
         void EnableDebugLayer();
 
-        void ThrowIfFailed (HRESULT hr);
+        void ThrowIfFailed( HRESULT hr );
 
-        Microsoft::WRL::ComPtr<IDXGIAdapter4> GetAdapter(bool useWarp);
+        Microsoft::WRL::ComPtr<IDXGIAdapter4> GetAdapter( bool useWarp );
+
+        Microsoft::WRL::ComPtr<ID3D12Device2> CreateDevice( Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter );
+
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue( Microsoft::WRL::ComPtr<ID3D12Device2> device,
+            D3D12_COMMAND_LIST_TYPE type );
+
+        bool CheckTearingSupport();
+
+        Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain( HWND hWnd,
+            Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue,
+            uint32_t width, uint32_t height, uint32_t bufferCount );
 
     private:
 

@@ -112,7 +112,7 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
     ShowWindow( hWnd, nCmdShow );
     UpdateWindow( hWnd );
 
-    globalApplication.Init();
+    globalApplication.Init(hWnd);
 
     return TRUE;
 }
