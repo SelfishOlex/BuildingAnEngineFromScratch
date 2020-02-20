@@ -20,10 +20,8 @@ namespace Olex
     {
         if ( IsInitialized() )
         {
-            // Make sure the command queue has finished all commands before closing.
-            Flush( m_CommandQueue, m_Fence, m_FenceValue, m_FenceEvent );
-
-            ::CloseHandle( m_FenceEvent );
+            m_CommandQueue->Flush();
+            m_CommandQueue.reset();
         }
     }
 
@@ -41,21 +39,14 @@ namespace Olex
         ComPtr<IDXGIAdapter4> dxgiAdapter4 = GetAdapter( m_UseWarp );
 
         m_Device = CreateDevice( dxgiAdapter4 );
-        m_CommandQueue = CreateCommandQueue( m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT );
-        m_SwapChain = CreateSwapChain( m_hWnd, m_CommandQueue, m_ClientWidth, m_ClientHeight, m_NumFrames );
+
+        m_CommandQueue = std::make_unique<CommandQueue>( *this, D3D12_COMMAND_LIST_TYPE_DIRECT );
+
+        m_SwapChain = CreateSwapChain( m_hWnd, m_CommandQueue->GetD3D12CommandQueue(), m_ClientWidth, m_ClientHeight, m_NumFrames );
         m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
         m_RTVDescriptorHeap = CreateDescriptorHeap( m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, m_NumFrames );
         m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_RTV );
         UpdateRenderTargetViews( m_Device, m_SwapChain, m_RTVDescriptorHeap );
-
-        for ( auto& commandAllocator : m_CommandAllocators )
-        {
-            commandAllocator = CreateCommandAllocator( m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT );
-        }
-        m_CommandList = CreateCommandList( m_Device, m_CommandAllocators[m_CurrentBackBufferIndex], D3D12_COMMAND_LIST_TYPE_DIRECT );
-
-        m_Fence = CreateFence( m_Device );
-        m_FenceEvent = CreateEventHandle();
 
         m_IsInitialized = true;
     }
@@ -350,16 +341,23 @@ namespace Olex
         ComPtr<ID3D12GraphicsCommandList> commandList;
         ThrowIfFailed( device->CreateCommandList( 0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS( &commandList ) ) );
 
-        ThrowIfFailed( commandList->Close() );
+        return commandList;
+    }
+
+    ComPtr<ID3D12GraphicsCommandList2> DX12App::CreateCommandList2( ComPtr<ID3D12Device2> device,
+        ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type )
+    {
+        ComPtr<ID3D12GraphicsCommandList2> commandList;
+        ThrowIfFailed( device->CreateCommandList( 0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS( &commandList ) ) );
 
         return commandList;
     }
 
-    ComPtr<ID3D12Fence> DX12App::CreateFence( ComPtr<ID3D12Device2> device )
+    ComPtr<ID3D12Fence> DX12App::CreateFence( ComPtr<ID3D12Device2> device, UINT64 initialValue )
     {
         ComPtr<ID3D12Fence> fence;
 
-        ThrowIfFailed( device->CreateFence( 0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS( &fence ) ) );
+        ThrowIfFailed( device->CreateFence( initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS( &fence ) ) );
 
         return fence;
     }
@@ -377,7 +375,7 @@ namespace Olex
     uint64_t DX12App::Signal( ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence,
         uint64_t& fenceValue )
     {
-        uint64_t fenceValueForSignal = ++fenceValue;
+        const uint64_t fenceValueForSignal = ++fenceValue;
         ThrowIfFailed( commandQueue->Signal( fence.Get(), fenceValueForSignal ) );
 
         return fenceValueForSignal;
@@ -426,11 +424,11 @@ namespace Olex
 
     void DX12App::Render()
     {
-        auto commandAllocator = m_CommandAllocators[m_CurrentBackBufferIndex];
+        //auto commandAllocator = m_CommandAllocators[m_CurrentBackBufferIndex];
         auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
 
-        commandAllocator->Reset();
-        m_CommandList->Reset( commandAllocator.Get(), nullptr );
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_CommandQueue->GetCommandList();
+        //commandAllocator->Reset(); // probably not necessary
 
         // Clear the render target.
         {
@@ -438,12 +436,12 @@ namespace Olex
                 backBuffer.Get(),
                 D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET );
 
-            m_CommandList->ResourceBarrier( 1, &barrier );
+            commandList->ResourceBarrier( 1, &barrier );
 
             FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
             CD3DX12_CPU_DESCRIPTOR_HANDLE rtv( m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_CurrentBackBufferIndex, m_RTVDescriptorSize );
 
-            m_CommandList->ClearRenderTargetView( rtv, clearColor, 0, nullptr );
+            commandList->ClearRenderTargetView( rtv, clearColor, 0, nullptr );
         }
 
         // Present
@@ -451,24 +449,17 @@ namespace Olex
             CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
                 backBuffer.Get(),
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
-            m_CommandList->ResourceBarrier( 1, &barrier );
+            commandList->ResourceBarrier( 1, &barrier );
 
-            ThrowIfFailed( m_CommandList->Close() );
+            const uint64_t fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList(commandList);
 
-            ID3D12CommandList* const commandLists[] = {
-                m_CommandList.Get()
-            };
-            m_CommandQueue->ExecuteCommandLists( _countof( commandLists ), commandLists );
-
-            UINT syncInterval = m_VSync ? 1 : 0;
-            UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
+            const UINT syncInterval = m_VSync ? 1 : 0;
+            const UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
             ThrowIfFailed( m_SwapChain->Present( syncInterval, presentFlags ) );
-
-            m_FrameFenceValues[m_CurrentBackBufferIndex] = Signal( m_CommandQueue, m_Fence, m_FenceValue );
 
             m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
 
-            WaitForFenceValue( m_Fence, m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent );
+            m_CommandQueue->WaitForFenceValue(fenceValueToWaitOn);
         }
     }
 
@@ -482,14 +473,15 @@ namespace Olex
 
             // Flush the GPU queue to make sure the swap chain's back buffers
             // are not being referenced by an in-flight command list.
-            Flush( m_CommandQueue, m_Fence, m_FenceValue, m_FenceEvent );
+            m_CommandQueue->Flush();
+            //Flush( m_CommandQueue, m_Fence, m_FenceValue, m_FenceEvent );
 
-            for ( int i = 0; i < m_NumFrames; ++i )
+            for (auto& backBuffer : m_BackBuffers)
             {
                 // Any references to the back buffers must be released
                 // before the swap chain can be resized.
-                m_BackBuffers[i].Reset();
-                m_FrameFenceValues[i] = m_FrameFenceValues[m_CurrentBackBufferIndex];
+                backBuffer.Reset();
+                //m_FrameFenceValues[i] = m_FrameFenceValues[m_CurrentBackBufferIndex];
             }
 
             DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
