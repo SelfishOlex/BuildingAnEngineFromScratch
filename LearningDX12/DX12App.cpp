@@ -407,7 +407,7 @@ namespace Olex
     void DX12App::Flush( ComPtr<ID3D12CommandQueue> commandQueue, ComPtr<ID3D12Fence> fence,
         uint64_t& fenceValue, HANDLE fenceEvent )
     {
-        uint64_t fenceValueForSignal = Signal( commandQueue, fence, fenceValue );
+        const uint64_t fenceValueForSignal = Signal( commandQueue, fence, fenceValue );
         WaitForFenceValue( fence, fenceValueForSignal, fenceEvent );
     }
 
@@ -430,9 +430,9 @@ namespace Olex
         elapsedSeconds += frameTime;
         if ( elapsedSeconds > 1.0 )
         {
-            wchar_t buffer[500];
+            wchar_t buffer[50];
             const double fps = frameCounter / elapsedSeconds;
-            swprintf_s( buffer, 500, L"FPS: %f\n", fps );
+            swprintf_s( buffer, _countof( buffer ), L"FPS: %f\n", fps );
             OutputDebugString( buffer );
 
             frameCounter = 0;
@@ -447,40 +447,47 @@ namespace Olex
 
     void DX12App::Render()
     {
-        auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
-
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_CommandQueue->GetCommandList();
-
-        // Clear the render target.
+        if ( m_currentGame )
         {
-            CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-                backBuffer.Get(),
-                D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET );
-
-            commandList->ResourceBarrier( 1, &barrier );
-
-            FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
-            CD3DX12_CPU_DESCRIPTOR_HANDLE rtv( m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_CurrentBackBufferIndex, m_RTVDescriptorSize );
-
-            commandList->ClearRenderTargetView( rtv, clearColor, 0, nullptr );
+            m_currentGame->Render({});
         }
-
-        // Present
+        else
         {
-            CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-                backBuffer.Get(),
-                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
-            commandList->ResourceBarrier( 1, &barrier );
+            auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
 
-            const uint64_t fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList( commandList );
+            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_CommandQueue->GetCommandList();
 
-            const UINT syncInterval = m_VSync ? 1 : 0;
-            const UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
-            ThrowIfFailed( m_SwapChain->Present( syncInterval, presentFlags ) );
+            // Clear the render target.
+            {
+                CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                    backBuffer.Get(),
+                    D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET );
 
-            m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+                commandList->ResourceBarrier( 1, &barrier );
 
-            m_CommandQueue->WaitForFenceValue( fenceValueToWaitOn );
+                FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+                CD3DX12_CPU_DESCRIPTOR_HANDLE rtv( m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_CurrentBackBufferIndex, m_RTVDescriptorSize );
+
+                commandList->ClearRenderTargetView( rtv, clearColor, 0, nullptr );
+            }
+
+            // Present
+            {
+                CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                    backBuffer.Get(),
+                    D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
+                commandList->ResourceBarrier( 1, &barrier );
+
+                const uint64_t fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList( commandList );
+
+                const UINT syncInterval = m_VSync ? 1 : 0;
+                const UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
+                ThrowIfFailed( m_SwapChain->Present( syncInterval, presentFlags ) );
+
+                m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+
+                m_CommandQueue->WaitForFenceValue( fenceValueToWaitOn );
+            }
         }
     }
 

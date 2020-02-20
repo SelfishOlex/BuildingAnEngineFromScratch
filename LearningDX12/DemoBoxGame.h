@@ -12,5 +12,6 @@ namespace Olex
         void LoadResources() override;
         void UnloadResources() override;
         void Update( UpdateEventArgs args ) override;
+        void Render( RenderEventArgs args ) override;
     };
 }

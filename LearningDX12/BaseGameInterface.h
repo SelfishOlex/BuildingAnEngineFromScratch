@@ -8,6 +8,10 @@ namespace Olex
         double m_totalTime = 0;
     };
 
+    struct RenderEventArgs
+    {
+    };
+
     class BaseGameInterface
     {
     public:
@@ -17,5 +21,6 @@ namespace Olex
         virtual void UnloadResources() = 0;
 
         virtual void Update(UpdateEventArgs args) = 0;
+        virtual void Render(RenderEventArgs args) = 0;
     };
 }

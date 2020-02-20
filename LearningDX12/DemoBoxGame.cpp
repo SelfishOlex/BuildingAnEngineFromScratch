@@ -13,4 +13,8 @@ namespace Olex
     void DemoBoxGame::Update( UpdateEventArgs args )
     {
     }
+
+    void DemoBoxGame::Render( RenderEventArgs args )
+    {
+    }
 }
