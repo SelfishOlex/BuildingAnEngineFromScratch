@@ -8,14 +8,23 @@
 #include <exception>
 
 // D3D12 extension library.
+#include <algorithm>
+
 #include "d3dx12.h"
 
 namespace Olex
 {
     using namespace Microsoft::WRL;
 
-    DX12App::DX12App()
+    DX12App::~DX12App()
     {
+        if ( IsInitialized() )
+        {
+            // Make sure the command queue has finished all commands before closing.
+            Flush( m_CommandQueue, m_Fence, m_FenceValue, m_FenceEvent );
+
+            ::CloseHandle( m_FenceEvent );
+        }
     }
 
     void DX12App::Init( HWND windowsHandle )
@@ -24,13 +33,70 @@ namespace Olex
 
         EnableDebugLayer();
 
-        auto adapter = GetAdapter( m_UseWarp );
-        m_Device = CreateDevice( adapter );
+        m_TearingSupported = CheckTearingSupport();
+
+        // Initialize the global window rect variable.
+        ::GetWindowRect( m_hWnd, &m_WindowRect );
+
+        ComPtr<IDXGIAdapter4> dxgiAdapter4 = GetAdapter( m_UseWarp );
+
+        m_Device = CreateDevice( dxgiAdapter4 );
         m_CommandQueue = CreateCommandQueue( m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT );
         m_SwapChain = CreateSwapChain( m_hWnd, m_CommandQueue, m_ClientWidth, m_ClientHeight, m_NumFrames );
-        m_RTVDescriptorHeap = CreateDescriptorHeap( m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, m_RTVDescriptorSize );
-        CreateRenderTargetViews( m_Device, m_SwapChain, m_RTVDescriptorHeap );
-        m_CommandAllocators[0] = CreateCommandAllocator( m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT );
+        m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+        m_RTVDescriptorHeap = CreateDescriptorHeap( m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, m_NumFrames );
+        m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_RTV );
+        UpdateRenderTargetViews( m_Device, m_SwapChain, m_RTVDescriptorHeap );
+
+        for ( auto& commandAllocator : m_CommandAllocators )
+        {
+            commandAllocator = CreateCommandAllocator( m_Device, D3D12_COMMAND_LIST_TYPE_DIRECT );
+        }
+        m_CommandList = CreateCommandList( m_Device, m_CommandAllocators[m_CurrentBackBufferIndex], D3D12_COMMAND_LIST_TYPE_DIRECT );
+
+        m_Fence = CreateFence( m_Device );
+        m_FenceEvent = CreateEventHandle();
+
+        m_IsInitialized = true;
+    }
+
+    void DX12App::OnPaintEvent()
+    {
+        Update();
+        Render();
+    }
+
+    void DX12App::OnKeyEvent( WPARAM wParam )
+    {
+        bool alt = ( ::GetAsyncKeyState( VK_MENU ) & 0x8000 ) != 0;
+
+        switch ( wParam )
+        {
+        case 'V':
+            m_VSync = !m_VSync;
+            break;
+        case VK_ESCAPE:
+            ::PostQuitMessage( 0 );
+            break;
+        case VK_RETURN:
+            if ( alt )
+            {
+        case VK_F11:
+            SetFullscreen( !m_Fullscreen );
+            }
+            break;
+        }
+    }
+
+    void DX12App::OnResize()
+    {
+        RECT clientRect = {};
+        ::GetClientRect( m_hWnd, &clientRect );
+
+        int width = clientRect.right - clientRect.left;
+        int height = clientRect.bottom - clientRect.top;
+
+        Resize( width, height );
     }
 
     void DX12App::EnableDebugLayer()
@@ -249,7 +315,7 @@ namespace Olex
         return descriptorHeap;
     }
 
-    void DX12App::CreateRenderTargetViews( ComPtr<ID3D12Device2> device,
+    void DX12App::UpdateRenderTargetViews( ComPtr<ID3D12Device2> device,
         ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap )
     {
         m_RTVDescriptorSize = device->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_RTV );
@@ -331,5 +397,160 @@ namespace Olex
     {
         uint64_t fenceValueForSignal = Signal( commandQueue, fence, fenceValue );
         WaitForFenceValue( fence, fenceValueForSignal, fenceEvent );
+    }
+
+    void DX12App::Update()
+    {
+        static uint64_t frameCounter = 0;
+        static double elapsedSeconds = 0.0;
+        static std::chrono::high_resolution_clock clock;
+        static auto t0 = clock.now();
+
+        frameCounter++;
+        auto t1 = clock.now();
+        auto deltaTime = t1 - t0;
+        t0 = t1;
+
+        elapsedSeconds += deltaTime.count() * 1e-9;
+        if ( elapsedSeconds > 1.0 )
+        {
+            wchar_t buffer[500];
+            const double fps = frameCounter / elapsedSeconds;
+            swprintf_s( buffer, 500, L"FPS: %f\n", fps );
+            OutputDebugString( buffer );
+
+            frameCounter = 0;
+            elapsedSeconds = 0.0;
+        }
+    }
+
+    void DX12App::Render()
+    {
+        auto commandAllocator = m_CommandAllocators[m_CurrentBackBufferIndex];
+        auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
+
+        commandAllocator->Reset();
+        m_CommandList->Reset( commandAllocator.Get(), nullptr );
+
+        // Clear the render target.
+        {
+            CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                backBuffer.Get(),
+                D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET );
+
+            m_CommandList->ResourceBarrier( 1, &barrier );
+
+            FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
+            CD3DX12_CPU_DESCRIPTOR_HANDLE rtv( m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_CurrentBackBufferIndex, m_RTVDescriptorSize );
+
+            m_CommandList->ClearRenderTargetView( rtv, clearColor, 0, nullptr );
+        }
+
+        // Present
+        {
+            CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+                backBuffer.Get(),
+                D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
+            m_CommandList->ResourceBarrier( 1, &barrier );
+
+            ThrowIfFailed( m_CommandList->Close() );
+
+            ID3D12CommandList* const commandLists[] = {
+                m_CommandList.Get()
+            };
+            m_CommandQueue->ExecuteCommandLists( _countof( commandLists ), commandLists );
+
+            UINT syncInterval = m_VSync ? 1 : 0;
+            UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
+            ThrowIfFailed( m_SwapChain->Present( syncInterval, presentFlags ) );
+
+            m_FrameFenceValues[m_CurrentBackBufferIndex] = Signal( m_CommandQueue, m_Fence, m_FenceValue );
+
+            m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+
+            WaitForFenceValue( m_Fence, m_FrameFenceValues[m_CurrentBackBufferIndex], m_FenceEvent );
+        }
+    }
+
+    void DX12App::Resize( uint32_t width, uint32_t height )
+    {
+        if ( m_ClientWidth != width || m_ClientHeight != height )
+        {
+            // Don't allow 0 size swap chain back buffers.
+            m_ClientWidth = std::max( 1u, width );
+            m_ClientHeight = std::max( 1u, height );
+
+            // Flush the GPU queue to make sure the swap chain's back buffers
+            // are not being referenced by an in-flight command list.
+            Flush( m_CommandQueue, m_Fence, m_FenceValue, m_FenceEvent );
+
+            for ( int i = 0; i < m_NumFrames; ++i )
+            {
+                // Any references to the back buffers must be released
+                // before the swap chain can be resized.
+                m_BackBuffers[i].Reset();
+                m_FrameFenceValues[i] = m_FrameFenceValues[m_CurrentBackBufferIndex];
+            }
+
+            DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+            ThrowIfFailed( m_SwapChain->GetDesc( &swapChainDesc ) );
+            ThrowIfFailed( m_SwapChain->ResizeBuffers( m_NumFrames, m_ClientWidth, m_ClientHeight,
+                swapChainDesc.BufferDesc.Format, swapChainDesc.Flags ) );
+
+            m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+
+            UpdateRenderTargetViews( m_Device, m_SwapChain, m_RTVDescriptorHeap );
+        }
+    }
+
+    void DX12App::SetFullscreen( bool fullscreen )
+    {
+        if ( m_Fullscreen != fullscreen )
+        {
+            m_Fullscreen = fullscreen;
+
+            if ( m_Fullscreen ) // Switching to fullscreen.
+            {
+                // Store the current window dimensions so they can be restored
+                // when switching out of fullscreen state.
+                ::GetWindowRect( m_hWnd, &m_WindowRect );
+
+                // Set the window style to a borderless window so the client area fills the entire screen.
+                UINT windowStyle = WS_OVERLAPPEDWINDOW & ~( WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX );
+
+                ::SetWindowLongW( m_hWnd, GWL_STYLE, windowStyle );
+
+                // Query the name of the nearest display device for the window.
+                // This is required to set the fullscreen dimensions of the window
+                // when using a multi-monitor setup.
+                HMONITOR hMonitor = ::MonitorFromWindow( m_hWnd, MONITOR_DEFAULTTONEAREST );
+                MONITORINFOEX monitorInfo = {};
+                monitorInfo.cbSize = sizeof( MONITORINFOEX );
+                ::GetMonitorInfo( hMonitor, &monitorInfo );
+
+                ::SetWindowPos( m_hWnd, HWND_TOP,
+                    monitorInfo.rcMonitor.left,
+                    monitorInfo.rcMonitor.top,
+                    monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+                    monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+                    SWP_FRAMECHANGED | SWP_NOACTIVATE );
+
+                ::ShowWindow( m_hWnd, SW_MAXIMIZE );
+            }
+            else
+            {
+                // Restore all the window decorators.
+                ::SetWindowLong( m_hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW );
+
+                ::SetWindowPos( m_hWnd, HWND_NOTOPMOST,
+                    m_WindowRect.left,
+                    m_WindowRect.top,
+                    m_WindowRect.right - m_WindowRect.left,
+                    m_WindowRect.bottom - m_WindowRect.top,
+                    SWP_FRAMECHANGED | SWP_NOACTIVATE );
+
+                ::ShowWindow( m_hWnd, SW_NORMAL );
+            }
+        }
     }
 }

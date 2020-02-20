@@ -14,9 +14,15 @@ namespace Olex
     class DX12App
     {
     public:
-        DX12App();
+        DX12App() = default;
+        ~DX12App();
 
         void Init( HWND windowsHandle );
+        bool IsInitialized() const { return m_IsInitialized; }
+
+        void OnPaintEvent();
+        void OnKeyEvent( WPARAM wParam );
+        void OnResize();
 
     protected:
 
@@ -42,7 +48,7 @@ namespace Olex
             Microsoft::WRL::ComPtr<ID3D12Device2> device,
             D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors );
 
-        void CreateRenderTargetViews(
+        void UpdateRenderTargetViews(
             Microsoft::WRL::ComPtr<ID3D12Device2> device,
             Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain,
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap );
@@ -55,21 +61,26 @@ namespace Olex
             Microsoft::WRL::ComPtr<ID3D12Device2> device,
             Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type );
 
-        Microsoft::WRL::ComPtr<ID3D12Fence> CreateFence(Microsoft::WRL::ComPtr<ID3D12Device2> device );
+        Microsoft::WRL::ComPtr<ID3D12Fence> CreateFence( Microsoft::WRL::ComPtr<ID3D12Device2> device );
 
         HANDLE CreateEventHandle();
 
-        uint64_t Signal(Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue,
-                        Microsoft::WRL::ComPtr<ID3D12Fence> fence,
-                        uint64_t& fenceValue );
+        uint64_t Signal( Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue,
+            Microsoft::WRL::ComPtr<ID3D12Fence> fence,
+            uint64_t& fenceValue );
 
-        void WaitForFenceValue(Microsoft::WRL::ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent,
-                               std::chrono::milliseconds duration = std::chrono::milliseconds::max() );
+        void WaitForFenceValue( Microsoft::WRL::ComPtr<ID3D12Fence> fence, uint64_t fenceValue, HANDLE fenceEvent,
+            std::chrono::milliseconds duration = std::chrono::milliseconds::max() );
 
-        void Flush (Microsoft::WRL::ComPtr<struct ID3D12CommandQueue> commandQueue,
-                    Microsoft::WRL::ComPtr<struct ID3D12Fence> fence,
-                    uint64_t& fenceValue,
-                    HANDLE fenceEvent);
+        void Flush( Microsoft::WRL::ComPtr<struct ID3D12CommandQueue> commandQueue,
+            Microsoft::WRL::ComPtr<struct ID3D12Fence> fence,
+            uint64_t& fenceValue,
+            HANDLE fenceEvent );
+
+        void Update();
+        void Render();
+        void Resize( uint32_t width, uint32_t height );
+        void SetFullscreen( bool fullscreen );
 
     private:
 

@@ -4,6 +4,9 @@
 #include "framework.h"
 #include "LearningDX12.h"
 
+#include <memory>
+
+
 #include "DX12App.h"
 
 #define MAX_LOADSTRING 100
@@ -15,9 +18,11 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass( HINSTANCE hInstance );
-BOOL                InitInstance( HINSTANCE, int );
+HWND                InitInstance( HINSTANCE, int );
 LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 INT_PTR CALLBACK    About( HWND, UINT, WPARAM, LPARAM );
+
+std::unique_ptr<Olex::DX12App> globalApplication;
 
 int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -27,7 +32,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER( hPrevInstance );
     UNREFERENCED_PARAMETER( lpCmdLine );
 
-    // TODO: Place code here.
+    // Windows 10 Creators update adds Per Monitor V2 DPI awareness context.
+    // Using this awareness context allows the client area of the window
+    // to achieve 100% scaling while still allowing non-client window content to
+    // be rendered in a DPI sensitive fashion.
+    SetThreadDpiAwarenessContext( DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 );
 
     // Initialize global strings
     LoadStringW( hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING );
@@ -35,10 +44,15 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     MyRegisterClass( hInstance );
 
     // Perform application initialization:
-    if ( !InitInstance( hInstance, nCmdShow ) )
+    globalApplication = std::make_unique<Olex::DX12App>();
+
+    HWND window = InitInstance( hInstance, nCmdShow );
+    if ( !window )
     {
         return FALSE;
     }
+
+    //ShowWindow( window, nCmdShow );
 
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_LEARNINGDX12 ) );
 
@@ -53,6 +67,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
             DispatchMessage( &msg );
         }
     }
+
+    globalApplication.reset();
 
     return (int)msg.wParam;
 }
@@ -77,15 +93,13 @@ ATOM MyRegisterClass( HINSTANCE hInstance )
     wcex.hInstance = hInstance;
     wcex.hIcon = LoadIcon( hInstance, MAKEINTRESOURCE( IDI_LEARNINGDX12 ) );
     wcex.hCursor = LoadCursor( nullptr, IDC_ARROW );
-    wcex.hbrBackground = (HBRUSH)( COLOR_WINDOW + 1 );
+    wcex.hbrBackground = reinterpret_cast<HBRUSH>( ( COLOR_WINDOW + 1 ) );
     wcex.lpszMenuName = MAKEINTRESOURCEW( IDC_LEARNINGDX12 );
     wcex.lpszClassName = szWindowClass;
     wcex.hIconSm = LoadIcon( wcex.hInstance, MAKEINTRESOURCE( IDI_SMALL ) );
 
     return RegisterClassExW( &wcex );
 }
-
-Olex::DX12App globalApplication;
 
 //
 //   FUNCTION: InitInstance(HINSTANCE, int)
@@ -97,7 +111,7 @@ Olex::DX12App globalApplication;
 //        In this function, we save the instance handle in a global variable and
 //        create and display the main program window.
 //
-BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
+HWND InitInstance( HINSTANCE hInstance, int nCmdShow )
 {
     hInst = hInstance; // Store instance handle in our global variable
 
@@ -106,15 +120,15 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 
     if ( !hWnd )
     {
-        return FALSE;
+        return hWnd;
     }
 
-    globalApplication.Init(hWnd);
+    globalApplication->Init( hWnd );
 
     ShowWindow( hWnd, nCmdShow );
     UpdateWindow( hWnd );
 
-    return TRUE;
+    return hWnd;
 }
 
 //
@@ -129,58 +143,60 @@ BOOL InitInstance( HINSTANCE hInstance, int nCmdShow )
 //
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
-    switch ( message )
+    if ( globalApplication )
     {
-    case WM_COMMAND:
-    {
-        int wmId = LOWORD( wParam );
-        // Parse the menu selections:
-        switch ( wmId )
+        if ( globalApplication->IsInitialized() )
         {
-        case IDM_ABOUT:
-            DialogBox( hInst, MAKEINTRESOURCE( IDD_ABOUTBOX ), hWnd, About );
+            switch ( message )
+            {
+            case WM_COMMAND:
+            {
+                int wmId = LOWORD( wParam );
+                // Parse the menu selections:
+                switch ( wmId )
+                {
+                case IDM_EXIT:
+                    DestroyWindow( hWnd );
+                    break;
+                default:
+                    return DefWindowProc( hWnd, message, wParam, lParam );
+                }
+            }
             break;
-        case IDM_EXIT:
-            DestroyWindow( hWnd );
+            case WM_PAINT:
+            {
+                globalApplication->OnPaintEvent();
+                return 0;
+            }
             break;
-        default:
+            case WM_DESTROY:
+                PostQuitMessage( 0 );
+                break;
+            case WM_SYSKEYDOWN:
+            case WM_KEYDOWN:
+            {
+                globalApplication->OnKeyEvent( wParam );
+                return DefWindowProc( hWnd, message, wParam, lParam );
+            }
+            break;
+            // The default window procedure will play a system notification sound
+            // when pressing the Alt+Enter keyboard combination if this message is
+            // not handled.
+            case WM_SYSCHAR:
+                break;
+            case WM_SIZE:
+            {
+                globalApplication->OnResize();
+            }
+            break;
+            default:
+                return DefWindowProc( hWnd, message, wParam, lParam );
+            }
+        }
+        else
+        {
             return DefWindowProc( hWnd, message, wParam, lParam );
         }
     }
-    break;
-    case WM_PAINT:
-    {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint( hWnd, &ps );
-        // TODO: Add any drawing code that uses hdc here...
-        EndPaint( hWnd, &ps );
-    }
-    break;
-    case WM_DESTROY:
-        PostQuitMessage( 0 );
-        break;
-    default:
-        return DefWindowProc( hWnd, message, wParam, lParam );
-    }
     return 0;
-}
-
-// Message handler for about box.
-INT_PTR CALLBACK About( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
-{
-    UNREFERENCED_PARAMETER( lParam );
-    switch ( message )
-    {
-    case WM_INITDIALOG:
-        return (INT_PTR)TRUE;
-
-    case WM_COMMAND:
-        if ( LOWORD( wParam ) == IDOK || LOWORD( wParam ) == IDCANCEL )
-        {
-            EndDialog( hDlg, LOWORD( wParam ) );
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
 }
