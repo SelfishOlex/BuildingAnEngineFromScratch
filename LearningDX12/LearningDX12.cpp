@@ -7,6 +7,8 @@
 #include <memory>
 
 
+
+#include "DemoBoxGame.h"
 #include "DX12App.h"
 
 #define MAX_LOADSTRING 100
@@ -52,12 +54,12 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    //ShowWindow( window, nCmdShow );
-
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_LEARNINGDX12 ) );
 
-    MSG msg;
+    // Choose a demo here
+    globalApplication->SetGame(std::make_unique<Olex::DemoBoxGame>());
 
+    MSG msg;
     // Main message loop:
     while ( GetMessage( &msg, nullptr, 0, 0 ) )
     {

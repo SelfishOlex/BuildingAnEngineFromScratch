@@ -149,8 +149,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BaseGameInterface.h" />
     <ClInclude Include="CommandQueue.h" />
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="DemoBoxGame.h" />
     <ClInclude Include="DX12App.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="LearningDX12.h" />
@@ -159,6 +161,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CommandQueue.cpp" />
+    <ClCompile Include="DemoBoxGame.cpp" />
     <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="LearningDX12.cpp" />
   </ItemGroup>

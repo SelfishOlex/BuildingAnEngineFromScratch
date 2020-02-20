@@ -8,6 +8,7 @@
 #include <chrono>
 #include <memory>
 
+#include "BaseGameInterface.h"
 #include "CommandQueue.h"
 #include "framework.h"
 
@@ -22,6 +23,8 @@ namespace Olex
         // public API
         void Init( HWND windowsHandle );
         bool IsInitialized() const { return m_IsInitialized; }
+
+        void SetGame(std::unique_ptr<BaseGameInterface> game);
 
         void OnPaintEvent();
         void OnKeyEvent( WPARAM wParam );
@@ -73,6 +76,8 @@ namespace Olex
 
     private:
 
+        std::unique_ptr<BaseGameInterface> m_currentGame;
+
         // The number of swap chain back buffers.
         static constexpr uint8_t m_NumFrames = 3;
         // Use WARP adapter
@@ -108,9 +113,8 @@ namespace Olex
         //uint64_t m_FrameFenceValues[m_NumFrames] = {};
         //HANDLE m_FenceEvent;
 
-        // By default, enable V-Sync.
         // Can be toggled with the V key.
-        bool m_VSync = true;
+        bool m_VSync = false;
         bool m_TearingSupported = false;
         // By default, use windowed mode.
         // Can be toggled with the Alt+Enter or F11

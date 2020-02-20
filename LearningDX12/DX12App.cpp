@@ -20,6 +20,12 @@ namespace Olex
     {
         if ( IsInitialized() )
         {
+            if ( m_currentGame )
+            {
+                m_currentGame->UnloadResources();
+                m_currentGame.reset();
+            }
+
             m_CommandQueue->Flush();
             m_CommandQueue.reset();
         }
@@ -49,6 +55,15 @@ namespace Olex
         UpdateRenderTargetViews( m_SwapChain, m_RTVDescriptorHeap );
 
         m_IsInitialized = true;
+    }
+
+    void DX12App::SetGame( std::unique_ptr<BaseGameInterface> game )
+    {
+        if ( IsInitialized() )
+        {
+            m_currentGame = std::move( game );
+            m_currentGame->LoadResources();
+        }
     }
 
     void DX12App::OnPaintEvent()
@@ -399,16 +414,20 @@ namespace Olex
     void DX12App::Update()
     {
         static uint64_t frameCounter = 0;
+        static double totalSeconds = 0.0;
         static double elapsedSeconds = 0.0;
         static std::chrono::high_resolution_clock clock;
         static auto t0 = clock.now();
 
         frameCounter++;
-        auto t1 = clock.now();
-        auto deltaTime = t1 - t0;
+        const auto t1 = clock.now();
+        const auto deltaTime = t1 - t0;
         t0 = t1;
 
-        elapsedSeconds += deltaTime.count() * 1e-9;
+        const double frameTime = deltaTime.count() * 1e-9;
+
+        totalSeconds += frameTime;
+        elapsedSeconds += frameTime;
         if ( elapsedSeconds > 1.0 )
         {
             wchar_t buffer[500];
@@ -418,6 +437,11 @@ namespace Olex
 
             frameCounter = 0;
             elapsedSeconds = 0.0;
+        }
+
+        if ( m_currentGame )
+        {
+            m_currentGame->Update( { frameTime, totalSeconds } );
         }
     }
 
