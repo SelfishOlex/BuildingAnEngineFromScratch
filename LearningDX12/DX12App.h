@@ -39,25 +39,24 @@ namespace Olex
 
         Microsoft::WRL::ComPtr<ID3D12Device2> CreateDevice( Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter );
 
-        Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue( Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type );
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue( D3D12_COMMAND_LIST_TYPE type );
 
         bool CheckTearingSupport();
 
         Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain( HWND hWnd, Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount );
 
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap( Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors );
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors );
 
-        void UpdateRenderTargetViews( Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap );
+        void UpdateRenderTargetViews( Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap );
 
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CreateCommandAllocator( Microsoft::WRL::ComPtr<ID3D12Device2> device, D3D12_COMMAND_LIST_TYPE type );
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CreateCommandAllocator( D3D12_COMMAND_LIST_TYPE type );
 
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> CreateCommandList( Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator,
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> CreateCommandList( Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator,
             D3D12_COMMAND_LIST_TYPE type );
 
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CreateCommandList2( Microsoft::WRL::ComPtr<ID3D12Device2> device, Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator,
-            D3D12_COMMAND_LIST_TYPE type );
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CreateCommandList2( Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type );
 
-        Microsoft::WRL::ComPtr<ID3D12Fence> CreateFence( Microsoft::WRL::ComPtr<ID3D12Device2> device, UINT64 initialValue );
+        Microsoft::WRL::ComPtr<ID3D12Fence> CreateFence( UINT64 initialValue );
 
         HANDLE CreateEventHandle();
 

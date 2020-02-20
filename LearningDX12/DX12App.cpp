@@ -44,9 +44,9 @@ namespace Olex
 
         m_SwapChain = CreateSwapChain( m_hWnd, m_CommandQueue->GetD3D12CommandQueue(), m_ClientWidth, m_ClientHeight, m_NumFrames );
         m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
-        m_RTVDescriptorHeap = CreateDescriptorHeap( m_Device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, m_NumFrames );
+        m_RTVDescriptorHeap = CreateDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE_RTV, m_NumFrames );
         m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_RTV );
-        UpdateRenderTargetViews( m_Device, m_SwapChain, m_RTVDescriptorHeap );
+        UpdateRenderTargetViews( m_SwapChain, m_RTVDescriptorHeap );
 
         m_IsInitialized = true;
     }
@@ -203,7 +203,6 @@ namespace Olex
     }
 
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> DX12App::CreateCommandQueue(
-        Microsoft::WRL::ComPtr<ID3D12Device2> device,
         D3D12_COMMAND_LIST_TYPE type )
     {
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> d3d12CommandQueue;
@@ -214,7 +213,7 @@ namespace Olex
         desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         desc.NodeMask = 0;
 
-        ThrowIfFailed( device->CreateCommandQueue( &desc, IID_PPV_ARGS( &d3d12CommandQueue ) ) );
+        ThrowIfFailed( m_Device->CreateCommandQueue( &desc, IID_PPV_ARGS( &d3d12CommandQueue ) ) );
 
         return d3d12CommandQueue;
     }
@@ -292,7 +291,7 @@ namespace Olex
         return dxgiSwapChain4;
     }
 
-    ComPtr<ID3D12DescriptorHeap> DX12App::CreateDescriptorHeap( ComPtr<ID3D12Device2> device,
+    ComPtr<ID3D12DescriptorHeap> DX12App::CreateDescriptorHeap(
         D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors )
     {
         ComPtr<ID3D12DescriptorHeap> descriptorHeap;
@@ -301,15 +300,15 @@ namespace Olex
         desc.NumDescriptors = numDescriptors;
         desc.Type = type;
 
-        ThrowIfFailed( device->CreateDescriptorHeap( &desc, IID_PPV_ARGS( &descriptorHeap ) ) );
+        ThrowIfFailed( m_Device->CreateDescriptorHeap( &desc, IID_PPV_ARGS( &descriptorHeap ) ) );
 
         return descriptorHeap;
     }
 
-    void DX12App::UpdateRenderTargetViews( ComPtr<ID3D12Device2> device,
+    void DX12App::UpdateRenderTargetViews(
         ComPtr<IDXGISwapChain4> swapChain, ComPtr<ID3D12DescriptorHeap> descriptorHeap )
     {
-        m_RTVDescriptorSize = device->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_RTV );
+        m_RTVDescriptorSize = m_Device->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_RTV );
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle( descriptorHeap->GetCPUDescriptorHandleForHeapStart() );
 
@@ -318,7 +317,7 @@ namespace Olex
             ComPtr<ID3D12Resource> backBuffer;
             ThrowIfFailed( swapChain->GetBuffer( i, IID_PPV_ARGS( &backBuffer ) ) );
 
-            device->CreateRenderTargetView( backBuffer.Get(), nullptr, rtvHandle );
+            m_Device->CreateRenderTargetView( backBuffer.Get(), nullptr, rtvHandle );
 
             m_BackBuffers[i] = backBuffer;
 
@@ -326,38 +325,38 @@ namespace Olex
         }
     }
 
-    ComPtr<ID3D12CommandAllocator> DX12App::CreateCommandAllocator( ComPtr<ID3D12Device2> device,
+    ComPtr<ID3D12CommandAllocator> DX12App::CreateCommandAllocator(
         D3D12_COMMAND_LIST_TYPE type )
     {
         ComPtr<ID3D12CommandAllocator> commandAllocator;
-        ThrowIfFailed( device->CreateCommandAllocator( type, IID_PPV_ARGS( &commandAllocator ) ) );
+        ThrowIfFailed( m_Device->CreateCommandAllocator( type, IID_PPV_ARGS( &commandAllocator ) ) );
 
         return commandAllocator;
     }
 
-    ComPtr<ID3D12GraphicsCommandList> DX12App::CreateCommandList( ComPtr<ID3D12Device2> device,
+    ComPtr<ID3D12GraphicsCommandList> DX12App::CreateCommandList(
         ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type )
     {
         ComPtr<ID3D12GraphicsCommandList> commandList;
-        ThrowIfFailed( device->CreateCommandList( 0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS( &commandList ) ) );
+        ThrowIfFailed( m_Device->CreateCommandList( 0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS( &commandList ) ) );
 
         return commandList;
     }
 
-    ComPtr<ID3D12GraphicsCommandList2> DX12App::CreateCommandList2( ComPtr<ID3D12Device2> device,
+    ComPtr<ID3D12GraphicsCommandList2> DX12App::CreateCommandList2(
         ComPtr<ID3D12CommandAllocator> commandAllocator, D3D12_COMMAND_LIST_TYPE type )
     {
         ComPtr<ID3D12GraphicsCommandList2> commandList;
-        ThrowIfFailed( device->CreateCommandList( 0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS( &commandList ) ) );
+        ThrowIfFailed( m_Device->CreateCommandList( 0, type, commandAllocator.Get(), nullptr, IID_PPV_ARGS( &commandList ) ) );
 
         return commandList;
     }
 
-    ComPtr<ID3D12Fence> DX12App::CreateFence( ComPtr<ID3D12Device2> device, UINT64 initialValue )
+    ComPtr<ID3D12Fence> DX12App::CreateFence( UINT64 initialValue )
     {
         ComPtr<ID3D12Fence> fence;
 
-        ThrowIfFailed( device->CreateFence( initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS( &fence ) ) );
+        ThrowIfFailed( m_Device->CreateFence( initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS( &fence ) ) );
 
         return fence;
     }
@@ -424,11 +423,9 @@ namespace Olex
 
     void DX12App::Render()
     {
-        //auto commandAllocator = m_CommandAllocators[m_CurrentBackBufferIndex];
         auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
 
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_CommandQueue->GetCommandList();
-        //commandAllocator->Reset(); // probably not necessary
 
         // Clear the render target.
         {
@@ -451,7 +448,7 @@ namespace Olex
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
             commandList->ResourceBarrier( 1, &barrier );
 
-            const uint64_t fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList(commandList);
+            const uint64_t fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList( commandList );
 
             const UINT syncInterval = m_VSync ? 1 : 0;
             const UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
@@ -459,7 +456,7 @@ namespace Olex
 
             m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
 
-            m_CommandQueue->WaitForFenceValue(fenceValueToWaitOn);
+            m_CommandQueue->WaitForFenceValue( fenceValueToWaitOn );
         }
     }
 
@@ -474,14 +471,12 @@ namespace Olex
             // Flush the GPU queue to make sure the swap chain's back buffers
             // are not being referenced by an in-flight command list.
             m_CommandQueue->Flush();
-            //Flush( m_CommandQueue, m_Fence, m_FenceValue, m_FenceEvent );
 
-            for (auto& backBuffer : m_BackBuffers)
+            for ( auto& backBuffer : m_BackBuffers )
             {
                 // Any references to the back buffers must be released
                 // before the swap chain can be resized.
                 backBuffer.Reset();
-                //m_FrameFenceValues[i] = m_FrameFenceValues[m_CurrentBackBufferIndex];
             }
 
             DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
@@ -491,7 +486,7 @@ namespace Olex
 
             m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
 
-            UpdateRenderTargetViews( m_Device, m_SwapChain, m_RTVDescriptorHeap );
+            UpdateRenderTargetViews( m_SwapChain, m_RTVDescriptorHeap );
         }
     }
 

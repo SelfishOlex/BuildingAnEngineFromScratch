@@ -16,8 +16,8 @@ namespace Olex
         desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         desc.NodeMask = 0;
 
-        m_d3d12CommandQueue = m_app.CreateCommandQueue( m_app.GetDevice(), D3D12_COMMAND_LIST_TYPE_DIRECT );
-        m_d3d12Fence = m_app.CreateFence( m_app.GetDevice(), m_FenceValue );
+        m_d3d12CommandQueue = m_app.CreateCommandQueue( D3D12_COMMAND_LIST_TYPE_DIRECT );
+        m_d3d12Fence = m_app.CreateFence( m_FenceValue );
         m_FenceEvent = m_app.CreateEventHandle();
     }
 
@@ -36,12 +36,12 @@ namespace Olex
 
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CommandQueue::CreateCommandAllocator()
     {
-        return m_app.CreateCommandAllocator( m_app.GetDevice(), m_CommandListType );
+        return m_app.CreateCommandAllocator( m_CommandListType );
     }
 
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CommandQueue::CreateCommandList( Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator )
     {
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.CreateCommandList2( m_app.GetDevice(), allocator, m_CommandListType );
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.CreateCommandList2( allocator, m_CommandListType );
         return commandList;
     }
 
