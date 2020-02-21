@@ -12,6 +12,12 @@ namespace Olex
     {
     };
 
+    struct ResizeEventArgs
+    {
+        int Width;
+        int Height;
+    };
+
     class BaseGameInterface
     {
     public:
@@ -22,5 +28,6 @@ namespace Olex
 
         virtual void Update(UpdateEventArgs args) = 0;
         virtual void Render(RenderEventArgs args) = 0;
+        virtual void Resize(ResizeEventArgs args) = 0;
     };
 }

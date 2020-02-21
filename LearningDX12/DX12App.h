@@ -24,11 +24,13 @@ namespace Olex
         void Init( HWND windowsHandle );
         bool IsInitialized() const { return m_IsInitialized; }
 
-        void SetGame(std::unique_ptr<BaseGameInterface> game);
+        void SetGame( std::unique_ptr<BaseGameInterface> game );
 
         void OnPaintEvent();
         void OnKeyEvent( WPARAM wParam );
         void OnResize();
+
+        void Present();
 
 
         // API for derivative classes
@@ -73,6 +75,12 @@ namespace Olex
         void Render();
         void Resize( uint32_t width, uint32_t height );
         void SetFullscreen( bool fullscreen );
+
+        UINT GetCurrentBackBufferIndex() { return m_SwapChain->GetCurrentBackBufferIndex(); }
+        Microsoft::WRL::ComPtr<ID3D12Resource> GetCurrentBackBuffer() { return m_BackBuffers[GetCurrentBackBufferIndex()]; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRenderTargetView() const;
+
+        CommandQueue& GetCommandQueue() { return *m_CommandQueue; }
 
     private:
 

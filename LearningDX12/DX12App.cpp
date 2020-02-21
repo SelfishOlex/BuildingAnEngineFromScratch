@@ -1,8 +1,6 @@
 #include "DX12App.h"
 
 // DirectX 12 specific headers.
-#include <d3d12.h>
-#include <dxgi1_6.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <exception>
@@ -449,7 +447,7 @@ namespace Olex
     {
         if ( m_currentGame )
         {
-            m_currentGame->Render({});
+            m_currentGame->Render( {} );
         }
         else
         {
@@ -480,15 +478,20 @@ namespace Olex
 
                 const uint64_t fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList( commandList );
 
-                const UINT syncInterval = m_VSync ? 1 : 0;
-                const UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
-                ThrowIfFailed( m_SwapChain->Present( syncInterval, presentFlags ) );
-
-                m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
+                Present();
 
                 m_CommandQueue->WaitForFenceValue( fenceValueToWaitOn );
             }
         }
+    }
+
+    void DX12App::Present()
+    {
+        const UINT syncInterval = m_VSync ? 1 : 0;
+        const UINT presentFlags = m_TearingSupported && !m_VSync ? DXGI_PRESENT_ALLOW_TEARING : 0;
+        ThrowIfFailed( m_SwapChain->Present( syncInterval, presentFlags ) );
+
+        m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
     }
 
     void DX12App::Resize( uint32_t width, uint32_t height )
@@ -570,5 +573,11 @@ namespace Olex
                 ::ShowWindow( m_hWnd, SW_NORMAL );
             }
         }
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE DX12App::GetCurrentRenderTargetView() const
+    {
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE( m_RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+            m_CurrentBackBufferIndex, m_RTVDescriptorSize );
     }
 }

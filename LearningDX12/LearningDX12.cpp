@@ -56,8 +56,11 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_LEARNINGDX12 ) );
 
+    RECT windowRect;
+    ::GetWindowRect( window, &windowRect );
+
     // Choose a demo here
-    globalApplication->SetGame(std::make_unique<Olex::DemoBoxGame>());
+    globalApplication->SetGame(std::make_unique<Olex::DemoBoxGame>(*globalApplication, windowRect.right - windowRect.left, windowRect.bottom - windowRect.top));
 
     MSG msg;
     // Main message loop:
