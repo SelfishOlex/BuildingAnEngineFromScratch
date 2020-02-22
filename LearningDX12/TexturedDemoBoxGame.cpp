@@ -4,6 +4,8 @@
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <filesystem>
+#include <WICTextureLoader.h>
+#include <ResourceUploadBatch.h>
 
 #include "d3dx12.h"
 #include "DX12App.h"
@@ -141,6 +143,8 @@ namespace Olex
 
         // Resize/Create the depth buffer.
         ResizeDepthBuffer( GetClientWidth(), GetClientHeight() );
+
+        LoadTextureFromFile(L"texture.jpg");
     }
 
     void TexturedDemoBoxGame::ResizeDepthBuffer( int width, int height )
@@ -194,21 +198,29 @@ namespace Olex
         }
     }
 
-    void TexturedDemoBoxGame::LoadTextureFromFile( const wchar_t* fileName )
+    Microsoft::WRL::ComPtr<ID3D12Resource> TexturedDemoBoxGame::LoadTextureFromFile( const wchar_t* fileName )
     {
+        Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
+
         using namespace std::filesystem;
         const path texturePath( fileName );
         if ( exists( texturePath ) == true )
         {
-            /*TexMetadata metadata;
-            ScratchImage scratchImage;
+            DirectX::ResourceUploadBatch uploadBatch( m_app.GetDevice().Get() );
+            uploadBatch.Begin();
 
-            ThrowIfFailed( LoadFromWICFile(
-                fileName.c_str(),
-                WIC_FLAGS_FORCE_RGB,
-                &metadata,
-                scratchImage ) );*/
+            ThrowIfFailed( DirectX::CreateWICTextureFromFile(
+                m_app.GetDevice().Get(),
+                uploadBatch,
+                fileName,
+                &textureResource,
+                true ) );
+
+            const std::future<void> uploadTask = uploadBatch.End(m_app.GetCommandQueue().GetD3D12CommandQueue().Get());
+            uploadTask.wait();
         }
+
+        return textureResource;
     }
 
     void TexturedDemoBoxGame::UnloadResources()

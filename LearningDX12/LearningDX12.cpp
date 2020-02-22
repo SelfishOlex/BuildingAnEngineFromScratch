@@ -63,6 +63,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         int argc;
         wchar_t** argv = ::CommandLineToArgvW( ::GetCommandLineW(), &argc );
 
+        SetWindowText(window, L"Use '-demo N' to specify demo option");
+
         for ( size_t i = 0; i < argc; ++i )
         {
             if ( ::wcscmp( argv[i], L"-demo" ) == 0 || ::wcscmp( argv[i], L"--demo" ) == 0 )

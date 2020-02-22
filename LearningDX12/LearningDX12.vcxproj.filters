@@ -87,4 +87,9 @@
       <Filter>Resource Files</Filter>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="texture.jpg">
+      <Filter>Resource Files</Filter>
+    </CopyFileToFolders>
+  </ItemGroup>
 </Project>

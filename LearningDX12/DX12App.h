@@ -36,7 +36,7 @@ namespace Olex
 
 
         // API for derivative classes
-        const Microsoft::WRL::ComPtr<ID3D12Device2>& GetDevice() const { return m_Device; }
+        Microsoft::WRL::ComPtr<ID3D12Device2>& GetDevice() { return m_Device; }
 
         void EnableDebugLayer();
 

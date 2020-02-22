@@ -38,7 +38,7 @@ namespace Olex
 
     private:
 
-        void LoadTextureFromFile( const wchar_t* fileName );
+        Microsoft::WRL::ComPtr<ID3D12Resource> LoadTextureFromFile( const wchar_t* fileName );
 
         // Vertex buffer for the cube.
         Microsoft::WRL::ComPtr<ID3D12Resource> m_VertexBuffer;
