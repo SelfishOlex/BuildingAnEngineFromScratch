@@ -10,6 +10,8 @@
 
 #include "DemoBoxGame.h"
 #include "DX12App.h"
+#include <shellapi.h>
+#include "TexturedDemoBoxGame.h"
 
 #define MAX_LOADSTRING 100
 
@@ -56,11 +58,36 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_LEARNINGDX12 ) );
 
-    RECT windowRect;
-    ::GetWindowRect( window, &windowRect );
-
     // Choose a demo here
-    globalApplication->SetGame(std::make_unique<Olex::DemoBoxGame>(*globalApplication, windowRect.right - windowRect.left, windowRect.bottom - windowRect.top));
+    {
+        int argc;
+        wchar_t** argv = ::CommandLineToArgvW( ::GetCommandLineW(), &argc );
+
+        for ( size_t i = 0; i < argc; ++i )
+        {
+            if ( ::wcscmp( argv[i], L"-demo" ) == 0 || ::wcscmp( argv[i], L"--demo" ) == 0 )
+            {
+                const unsigned long choice = ::wcstoul(argv[++i], nullptr, 10);
+                switch(choice)
+                {
+                case 0:
+                    break;
+                case 1:
+                    globalApplication->SetGame( std::make_unique<Olex::DemoBoxGame>( *globalApplication ) );
+                    break;
+                case 2:
+                    globalApplication->SetGame( std::make_unique<Olex::TexturedDemoBoxGame>( *globalApplication ) );
+                    break;
+                default:
+                    break;
+                }
+                break;
+            }
+        }
+
+        // Free memory allocated by CommandLineToArgvW
+        ::LocalFree( argv );
+    }
 
     MSG msg;
     // Main message loop:

@@ -158,12 +158,15 @@
     <ClInclude Include="LearningDX12.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TexturedDemoBoxGame.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BaseGameInterface.cpp" />
     <ClCompile Include="CommandQueue.cpp" />
     <ClCompile Include="DemoBoxGame.cpp" />
     <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="LearningDX12.cpp" />
+    <ClCompile Include="TexturedDemoBoxGame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="LearningDX12.rc" />

@@ -12,11 +12,11 @@ namespace Olex
 {
     class DX12App;
 
-    class DemoBoxGame final
+    class TexturedDemoBoxGame final
         : public BaseGameInterface
     {
     public:
-        explicit DemoBoxGame( DX12App& app );
+        TexturedDemoBoxGame( DX12App& app );
 
         void LoadResources() override;
         void ResizeDepthBuffer( int width, int height );

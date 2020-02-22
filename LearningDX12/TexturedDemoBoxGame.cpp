@@ -1,4 +1,4 @@
-#include "DemoBoxGame.h"
+#include "TexturedDemoBoxGame.h"
 
 #include <d3d12.h>
 #include <d3dcompiler.h>
@@ -12,7 +12,7 @@ namespace Olex
 {
     using namespace Microsoft::WRL;
 
-    DemoBoxGame::DemoBoxGame( DX12App& app ) : BaseGameInterface(app)
+    TexturedDemoBoxGame::TexturedDemoBoxGame( DX12App& app ) : BaseGameInterface(app)
         , m_ScissorRect( CD3DX12_RECT( 0, 0, LONG_MAX, LONG_MAX ) )
         , m_FoV( 45.0 )
         , m_ContentLoaded( false )
@@ -25,7 +25,7 @@ namespace Olex
         m_Viewport = CD3DX12_VIEWPORT( 0.0f, 0.0f, static_cast<float>( m_Width ), static_cast<float>( m_Height ) );
     }
 
-    void DemoBoxGame::LoadResources()
+    void TexturedDemoBoxGame::LoadResources()
     {
         Microsoft::WRL::ComPtr<ID3D12Device2> device = m_app.GetDevice();
 
@@ -143,7 +143,7 @@ namespace Olex
         ResizeDepthBuffer( GetClientWidth(), GetClientHeight() );
     }
 
-    void DemoBoxGame::ResizeDepthBuffer( int width, int height )
+    void TexturedDemoBoxGame::ResizeDepthBuffer( int width, int height )
     {
         if ( m_ContentLoaded )
         {
@@ -183,7 +183,7 @@ namespace Olex
         }
     }
 
-    void DemoBoxGame::Resize( ResizeEventArgs args )
+    void TexturedDemoBoxGame::Resize( ResizeEventArgs args )
     {
         if ( args.Width != GetClientWidth() || args.Height != GetClientHeight() )
         {
@@ -194,11 +194,11 @@ namespace Olex
         }
     }
 
-    void DemoBoxGame::UnloadResources()
+    void TexturedDemoBoxGame::UnloadResources()
     {
     }
 
-    void DemoBoxGame::Update( UpdateEventArgs args )
+    void TexturedDemoBoxGame::Update( UpdateEventArgs args )
     {
         static uint64_t frameCount = 0;
         static double totalTime = 0.0;
@@ -236,7 +236,7 @@ namespace Olex
         m_ProjectionMatrix = XMMatrixPerspectiveFovLH( XMConvertToRadians( m_FoV ), aspectRatio, 0.1f, 100.0f );
     }
 
-    void DemoBoxGame::Render( RenderEventArgs args )
+    void TexturedDemoBoxGame::Render( RenderEventArgs args )
     {
         using namespace DirectX;
 

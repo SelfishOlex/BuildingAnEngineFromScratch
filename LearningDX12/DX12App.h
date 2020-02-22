@@ -22,6 +22,8 @@ namespace Olex
 
         // public API
         void Init( HWND windowsHandle );
+        HWND GetWindowHandle() { return m_hWnd; }
+
         bool IsInitialized() const { return m_IsInitialized; }
 
         void SetGame( std::unique_ptr<BaseGameInterface> game );
