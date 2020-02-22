@@ -3,7 +3,7 @@
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
-
+#include <filesystem>
 
 #include "d3dx12.h"
 #include "DX12App.h"
@@ -12,7 +12,7 @@ namespace Olex
 {
     using namespace Microsoft::WRL;
 
-    TexturedDemoBoxGame::TexturedDemoBoxGame( DX12App& app ) : BaseGameInterface(app)
+    TexturedDemoBoxGame::TexturedDemoBoxGame( DX12App& app ) : BaseGameInterface( app )
         , m_ScissorRect( CD3DX12_RECT( 0, 0, LONG_MAX, LONG_MAX ) )
         , m_FoV( 45.0 )
         , m_ContentLoaded( false )
@@ -191,6 +191,23 @@ namespace Olex
                 static_cast<float>( args.Width ), static_cast<float>( args.Height ) );
 
             ResizeDepthBuffer( args.Width, args.Height );
+        }
+    }
+
+    void TexturedDemoBoxGame::LoadTextureFromFile( const wchar_t* fileName )
+    {
+        using namespace std::filesystem;
+        const path texturePath( fileName );
+        if ( exists( texturePath ) == true )
+        {
+            /*TexMetadata metadata;
+            ScratchImage scratchImage;
+
+            ThrowIfFailed( LoadFromWICFile(
+                fileName.c_str(),
+                WIC_FLAGS_FORCE_RGB,
+                &metadata,
+                scratchImage ) );*/
         }
     }
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <d3d12.h>
 #include <DirectXMath.h>
-#include <memory>
+#include <string>
 #include <wrl/client.h>
 
 
@@ -37,6 +37,8 @@ namespace Olex
         void Resize( ResizeEventArgs args ) override;
 
     private:
+
+        void LoadTextureFromFile( const wchar_t* fileName );
 
         // Vertex buffer for the cube.
         Microsoft::WRL::ComPtr<ID3D12Resource> m_VertexBuffer;

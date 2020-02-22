@@ -71,14 +71,18 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
                 switch(choice)
                 {
                 case 0:
+                    SetWindowText(window, L"Demo: None");
                     break;
                 case 1:
+                    SetWindowText(window, L"Demo: Non-texture Cube");
                     globalApplication->SetGame( std::make_unique<Olex::DemoBoxGame>( *globalApplication ) );
                     break;
                 case 2:
+                    SetWindowText(window, L"Demo: Textured Cube");
                     globalApplication->SetGame( std::make_unique<Olex::TexturedDemoBoxGame>( *globalApplication ) );
                     break;
                 default:
+                    SetWindowText(window, L"No Demo");
                     break;
                 }
                 break;
