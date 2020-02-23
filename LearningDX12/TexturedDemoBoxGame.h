@@ -47,22 +47,22 @@ namespace Olex
         Microsoft::WRL::ComPtr<ID3D12Resource> m_IndexBuffer;
         D3D12_INDEX_BUFFER_VIEW m_IndexBufferView;
 
-        // Vertex data for a colored cube.
-        struct VertexPosColor
+        // Vertex data for a textured cube.
+        struct VertexPosUV
         {
             DirectX::XMFLOAT3 Position;
-            DirectX::XMFLOAT3 Color;
+            DirectX::XMFLOAT2 UV;
         };
 
-        VertexPosColor m_Vertices[8] = {
-        { DirectX::XMFLOAT3( -1.0f, -1.0f, -1.0f ), DirectX::XMFLOAT3( 0.0f, 0.0f, 0.0f ) }, // 0
-        { DirectX::XMFLOAT3( -1.0f,  1.0f, -1.0f ), DirectX::XMFLOAT3( 0.0f, 1.0f, 0.0f ) }, // 1
-        { DirectX::XMFLOAT3( 1.0f,  1.0f, -1.0f ), DirectX::XMFLOAT3( 1.0f, 1.0f, 0.0f ) }, // 2
-        { DirectX::XMFLOAT3( 1.0f, -1.0f, -1.0f ), DirectX::XMFLOAT3( 1.0f, 0.0f, 0.0f ) }, // 3
-        { DirectX::XMFLOAT3( -1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT3( 0.0f, 0.0f, 1.0f ) }, // 4
-        { DirectX::XMFLOAT3( -1.0f,  1.0f,  1.0f ), DirectX::XMFLOAT3( 0.0f, 1.0f, 1.0f ) }, // 5
-        { DirectX::XMFLOAT3( 1.0f,  1.0f,  1.0f ), DirectX::XMFLOAT3( 1.0f, 1.0f, 1.0f ) }, // 6
-        { DirectX::XMFLOAT3( 1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT3( 1.0f, 0.0f, 1.0f ) }  // 7
+        VertexPosUV m_Vertices[8] = {
+        { DirectX::XMFLOAT3( -1.0f, -1.0f, -1.0f ), DirectX::XMFLOAT2( 0.0f, 0.0f ) }, // 0
+        { DirectX::XMFLOAT3( -1.0f,  1.0f, -1.0f ), DirectX::XMFLOAT2( 0.0f, 1.0f ) }, // 1
+        { DirectX::XMFLOAT3( 1.0f,  1.0f, -1.0f ), DirectX::XMFLOAT2( 1.0f, 1.0f ) }, // 2
+        { DirectX::XMFLOAT3( 1.0f, -1.0f, -1.0f ), DirectX::XMFLOAT2( 1.0f, 0.0f ) }, // 3
+        { DirectX::XMFLOAT3( -1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT2( 0.0f, 0.0f ) }, // 4
+        { DirectX::XMFLOAT3( -1.0f,  1.0f,  1.0f ), DirectX::XMFLOAT2( 0.0f, 1.0f ) }, // 5
+        { DirectX::XMFLOAT3( 1.0f,  1.0f,  1.0f ), DirectX::XMFLOAT2( 1.0f, 1.0f ) }, // 6
+        { DirectX::XMFLOAT3( 1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT2( 1.0f, 0.0f ) }  // 7
         };
 
         WORD m_Indices[36] =
@@ -79,6 +79,9 @@ namespace Olex
         Microsoft::WRL::ComPtr<ID3D12Resource> m_DepthBuffer;
         // Descriptor heap for depth buffer.
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
+        // To hold a view of a texture
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SamplerHeap;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SrvHeap;
 
         // Root signature
         Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
@@ -99,5 +102,7 @@ namespace Olex
 
         int m_Width;
         int m_Height;
+
+        void CreateRootSignature();
     };
 }

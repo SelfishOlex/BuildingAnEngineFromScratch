@@ -52,7 +52,7 @@ namespace Olex
 
         Microsoft::WRL::ComPtr<IDXGISwapChain4> CreateSwapChain( HWND hWnd, Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue, uint32_t width, uint32_t height, uint32_t bufferCount );
 
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors );
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE );
 
         void UpdateRenderTargetViews( Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain, Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap );
 
@@ -89,7 +89,7 @@ namespace Olex
         std::unique_ptr<BaseGameInterface> m_currentGame;
 
         // The number of swap chain back buffers.
-        static constexpr uint8_t m_NumFrames = 3;
+        static constexpr uint8_t m_NumFrames = 4;
         // Use WARP adapter
         bool m_UseWarp = false;
 

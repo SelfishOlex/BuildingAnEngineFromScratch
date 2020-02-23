@@ -31,18 +31,109 @@ namespace Olex
     {
         Microsoft::WRL::ComPtr<ID3D12Device2> device = m_app.GetDevice();
 
+        CreateRootSignature();
+
+        // Create the descriptor heap for the texture view.
+        m_SamplerHeap = m_app.CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
+        m_SrvHeap = m_app.CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1/*, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE*/);
+        m_DSVHeap = m_app.CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1);
+
+        auto test1 = m_SamplerHeap->GetCPUDescriptorHandleForHeapStart();
+        auto test1g = m_SamplerHeap->GetGPUDescriptorHandleForHeapStart();
+
+        auto test2 = m_SrvHeap->GetCPUDescriptorHandleForHeapStart();
+        auto test2g = m_SrvHeap->GetGPUDescriptorHandleForHeapStart();
+
+        auto samplerDescriptorSize = m_app.GetDevice()->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE samplerDescriptor{ // this can be used to offset inside the heap to add more than one texture by using .Offset()
+            m_SamplerHeap->GetCPUDescriptorHandleForHeapStart()
+        };
+
+        D3D12_SAMPLER_DESC samplerDesc = {};
+        {
+            samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+            samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            samplerDesc.MipLODBias = 0;
+            samplerDesc.MaxAnisotropy = 0;
+            samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+            samplerDesc.MinLOD = 0.0f;
+            samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+        }
+        m_app.GetDevice()->CreateSampler( &samplerDesc, samplerDescriptor );
+
+        Microsoft::WRL::ComPtr<ID3D12Resource> texture;
+
+        using namespace std::filesystem;
+        DirectX::ResourceUploadBatch uploadBatch( m_app.GetDevice().Get() );
+        uploadBatch.Begin();
+
+        ThrowIfFailed( DirectX::CreateWICTextureFromFile(
+            m_app.GetDevice().Get(),
+            uploadBatch,
+            L"texture.jpg",
+            texture.ReleaseAndGetAddressOf(),
+            false ) );
+
+        {
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // no re-ordering of RGBA components
+            srvDesc.Format = texture->GetDesc().Format;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // The resource is a 2D texture.
+            srvDesc.Texture2D.MostDetailedMip = 0; // so the first in memory is the largest mipmap level
+            srvDesc.Texture2D.MipLevels = texture->GetDesc().MipLevels;
+            srvDesc.Texture2D.ResourceMinLODClamp = 0.0f; // A value to clamp sample LOD values to.
+            m_app.GetDevice()->CreateShaderResourceView( texture.Get(), &srvDesc, m_SamplerHeap->GetCPUDescriptorHandleForHeapStart() );
+        }
+
+        const std::future<void> uploadTask = uploadBatch.End( m_app.GetCommandQueue().GetD3D12CommandQueue().Get() );
+        uploadTask.wait();
+
+        // Create the vertex input layout
+        D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
+
+        // Load the vertex shader.
+        ComPtr<ID3DBlob> vertexShaderBlob;
+        ThrowIfFailed( D3DReadFileToBlob( L"VertexShader_Textured.cso", &vertexShaderBlob ) );
+
+        // Load the pixel shader.
+        ComPtr<ID3DBlob> pixelShaderBlob;
+        ThrowIfFailed( D3DReadFileToBlob( L"PixelShader_Textured.cso", &pixelShaderBlob ) );
+
+        // Describe and create the graphics pipeline state object (PSO).
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.InputLayout = { inputLayout, _countof( inputLayout ) };
+        psoDesc.pRootSignature = m_RootSignature.Get();
+        psoDesc.VS = CD3DX12_SHADER_BYTECODE( vertexShaderBlob.Get() );
+        psoDesc.PS = CD3DX12_SHADER_BYTECODE( pixelShaderBlob.Get() );
+        psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC( D3D12_DEFAULT );
+        psoDesc.BlendState = CD3DX12_BLEND_DESC( D3D12_DEFAULT );
+        psoDesc.DepthStencilState.DepthEnable = FALSE;
+        psoDesc.DepthStencilState.StencilEnable = FALSE;
+        psoDesc.SampleMask = UINT_MAX;
+        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        psoDesc.NumRenderTargets = 1;
+        psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+        psoDesc.SampleDesc.Count = 1;
+        ThrowIfFailed( m_app.GetDevice()->CreateGraphicsPipelineState( &psoDesc, IID_PPV_ARGS( &m_PipelineState ) ) );
+
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
 
         // Upload vertex buffer data.
         ComPtr<ID3D12Resource> intermediateVertexBuffer;
         UpdateBufferResource( commandList.Get(),
             &m_VertexBuffer, &intermediateVertexBuffer,
-            _countof( m_Vertices ), sizeof( VertexPosColor ), m_Vertices );
+            _countof( m_Vertices ), sizeof( VertexPosUV ), m_Vertices );
 
         // Create the vertex buffer view.
         m_VertexBufferView.BufferLocation = m_VertexBuffer->GetGPUVirtualAddress();
         m_VertexBufferView.SizeInBytes = sizeof( m_Vertices );
-        m_VertexBufferView.StrideInBytes = sizeof( VertexPosColor );
+        m_VertexBufferView.StrideInBytes = sizeof( VertexPosUV );
 
         // Upload index buffer data.
         ComPtr<ID3D12Resource> intermediateIndexBuffer;
@@ -55,46 +146,55 @@ namespace Olex
         m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
         m_IndexBufferView.SizeInBytes = sizeof( m_Indices );
 
-        // Create the descriptor heap for the depth-stencil view.
-        D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-        dsvHeapDesc.NumDescriptors = 1;
-        dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-        dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-        ThrowIfFailed( device->CreateDescriptorHeap( &dsvHeapDesc, IID_PPV_ARGS( &m_DSVHeap ) ) );
+        const uint64_t fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
+        m_app.GetCommandQueue().WaitForFenceValue( fenceValue );
 
-        // Load the vertex shader.
-        ComPtr<ID3DBlob> vertexShaderBlob;
-        ThrowIfFailed( D3DReadFileToBlob( L"VertexShader.cso", &vertexShaderBlob ) );
+        m_ContentLoaded = true;
 
-        // Load the pixel shader.
-        ComPtr<ID3DBlob> pixelShaderBlob;
-        ThrowIfFailed( D3DReadFileToBlob( L"PixelShader.cso", &pixelShaderBlob ) );
+        // Resize/Create the depth buffer.
+        ResizeDepthBuffer( GetClientWidth(), GetClientHeight() );
+    }
 
-        // Create the vertex input layout
-        D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        };
-
+    void TexturedDemoBoxGame::CreateRootSignature()
+    {
         // Create a root signature.
         D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
         featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
-        if ( FAILED( device->CheckFeatureSupport( D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof( featureData ) ) ) )
+        if ( FAILED( m_app.GetDevice()->CheckFeatureSupport( D3D12_FEATURE_ROOT_SIGNATURE, &featureData, sizeof( featureData ) ) ) )
         {
             featureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
         }
 
         // Allow input layout and deny unnecessary access to certain pipeline stages.
-        D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
+        const D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS/* |
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS*/;
 
-        // A single 32-bit constant root parameter that is used by the vertex shader.
-        CD3DX12_ROOT_PARAMETER1 rootParameters[1];
+            /*D3D12_STATIC_SAMPLER_DESC sampler = {};
+            sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+            sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            sampler.MipLODBias = 0;
+            sampler.MaxAnisotropy = 0;
+            sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+            sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+            sampler.MinLOD = 0.0f;
+            sampler.MaxLOD = D3D12_FLOAT32_MAX;
+            sampler.ShaderRegister = 0;
+            sampler.RegisterSpace = 0;
+            sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;*/
+
+            // A single 32-bit constant root parameter that is used by the vertex shader.
+        CD3DX12_ROOT_PARAMETER1 rootParameters[2];
         rootParameters[0].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
+        {
+            CD3DX12_DESCRIPTOR_RANGE1 descriptorRange( D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0 );
+            rootParameters[1].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_ALL ); // TODO limit to pixel shader only?
+        }
 
         CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
         rootSignatureDescription.Init_1_1( _countof( rootParameters ), rootParameters, 0, nullptr, rootSignatureFlags );
@@ -105,46 +205,8 @@ namespace Olex
         ThrowIfFailed( D3DX12SerializeVersionedRootSignature( &rootSignatureDescription,
             featureData.HighestVersion, &rootSignatureBlob, &errorBlob ) );
         // Create the root signature.
-        ThrowIfFailed( device->CreateRootSignature( 0, rootSignatureBlob->GetBufferPointer(),
+        ThrowIfFailed( m_app.GetDevice()->CreateRootSignature( 0, rootSignatureBlob->GetBufferPointer(),
             rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS( &m_RootSignature ) ) );
-
-        struct PipelineStateStream
-        {
-            CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
-            CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT InputLayout;
-            CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY PrimitiveTopologyType;
-            CD3DX12_PIPELINE_STATE_STREAM_VS VS;
-            CD3DX12_PIPELINE_STATE_STREAM_PS PS;
-            CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT DSVFormat;
-            CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
-        } pipelineStateStream;
-
-        D3D12_RT_FORMAT_ARRAY rtvFormats = {};
-        rtvFormats.NumRenderTargets = 1;
-        rtvFormats.RTFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-        pipelineStateStream.pRootSignature = m_RootSignature.Get();
-        pipelineStateStream.InputLayout = { inputLayout, _countof( inputLayout ) };
-        pipelineStateStream.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-        pipelineStateStream.VS = CD3DX12_SHADER_BYTECODE( vertexShaderBlob.Get() );
-        pipelineStateStream.PS = CD3DX12_SHADER_BYTECODE( pixelShaderBlob.Get() );
-        pipelineStateStream.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-        pipelineStateStream.RTVFormats = rtvFormats;
-
-        D3D12_PIPELINE_STATE_STREAM_DESC pipelineStateStreamDesc = {
-    sizeof( PipelineStateStream ), &pipelineStateStream
-        };
-        ThrowIfFailed( device->CreatePipelineState( &pipelineStateStreamDesc, IID_PPV_ARGS( &m_PipelineState ) ) );
-
-        const uint64_t fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
-        m_app.GetCommandQueue().WaitForFenceValue( fenceValue );
-
-        m_ContentLoaded = true;
-
-        // Resize/Create the depth buffer.
-        ResizeDepthBuffer( GetClientWidth(), GetClientHeight() );
-
-        LoadTextureFromFile(L"texture.jpg");
     }
 
     void TexturedDemoBoxGame::ResizeDepthBuffer( int width, int height )
@@ -213,10 +275,10 @@ namespace Olex
                 m_app.GetDevice().Get(),
                 uploadBatch,
                 fileName,
-                &textureResource,
-                true ) );
+                textureResource.ReleaseAndGetAddressOf(),
+                false ) );
 
-            const std::future<void> uploadTask = uploadBatch.End(m_app.GetCommandQueue().GetD3D12CommandQueue().Get());
+            const std::future<void> uploadTask = uploadBatch.End( m_app.GetCommandQueue().GetD3D12CommandQueue().Get() );
             uploadTask.wait();
         }
 
@@ -305,6 +367,8 @@ namespace Olex
         XMMATRIX mvpMatrix = XMMatrixMultiply( m_ModelMatrix, m_ViewMatrix );
         mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
         commandList->SetGraphicsRoot32BitConstants( 0, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
+
+        commandList->SetGraphicsRootDescriptorTable( 1, m_SamplerHeap->GetGPUDescriptorHandleForHeapStart() );
 
         // draw the cube
         commandList->DrawIndexedInstanced( _countof( m_Indices ), 1, 0, 0, 0 );

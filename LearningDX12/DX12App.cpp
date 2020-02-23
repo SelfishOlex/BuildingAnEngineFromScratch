@@ -156,7 +156,7 @@ namespace Olex
                 // is favored.
                 if ( ( dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE ) == 0 ) // looking only for hardware interfaces
                 {
-                    if ( SUCCEEDED( D3D12CreateDevice( dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_11_0, __uuidof( ID3D12Device ), nullptr ) ) &&
+                    if ( SUCCEEDED( D3D12CreateDevice( dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_1, __uuidof( ID3D12Device ), nullptr ) ) &&
                         dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory )
                     {
                         maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
@@ -171,9 +171,8 @@ namespace Olex
 
     Microsoft::WRL::ComPtr<ID3D12Device2> DX12App::CreateDevice( Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter )
     {
-
         ComPtr<ID3D12Device2> d3d12Device2;
-        ThrowIfFailed( D3D12CreateDevice( adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS( &d3d12Device2 ) ) );
+        ThrowIfFailed( D3D12CreateDevice( adapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS( &d3d12Device2 ) ) );
 
         // Enable debug messages in debug mode.
 #if defined(_DEBUG)
@@ -305,13 +304,14 @@ namespace Olex
     }
 
     ComPtr<ID3D12DescriptorHeap> DX12App::CreateDescriptorHeap(
-        D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors )
+        D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors, D3D12_DESCRIPTOR_HEAP_FLAGS flags )
     {
         ComPtr<ID3D12DescriptorHeap> descriptorHeap;
 
         D3D12_DESCRIPTOR_HEAP_DESC desc = {};
         desc.NumDescriptors = numDescriptors;
         desc.Type = type;
+        desc.Flags = flags;
 
         ThrowIfFailed( m_Device->CreateDescriptorHeap( &desc, IID_PPV_ARGS( &descriptorHeap ) ) );
 
