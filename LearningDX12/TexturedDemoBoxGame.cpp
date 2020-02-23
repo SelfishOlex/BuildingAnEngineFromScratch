@@ -9,6 +9,9 @@
 
 #include "d3dx12.h"
 #include "DX12App.h"
+#include "wrl/wrappers/corewrappers.h"
+
+#include <pix.h>
 
 namespace Olex
 {
@@ -34,37 +37,31 @@ namespace Olex
         CreateRootSignature();
 
         // Create the descriptor heap for the texture view.
-        m_SamplerHeap = m_app.CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, 1, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
-        m_SrvHeap = m_app.CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1/*, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE*/);
-        m_DSVHeap = m_app.CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1);
-
-        auto test1 = m_SamplerHeap->GetCPUDescriptorHandleForHeapStart();
-        auto test1g = m_SamplerHeap->GetGPUDescriptorHandleForHeapStart();
-
-        auto test2 = m_SrvHeap->GetCPUDescriptorHandleForHeapStart();
-        auto test2g = m_SrvHeap->GetGPUDescriptorHandleForHeapStart();
-
-        auto samplerDescriptorSize = m_app.GetDevice()->GetDescriptorHandleIncrementSize( D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV );
-
-        CD3DX12_CPU_DESCRIPTOR_HANDLE samplerDescriptor{ // this can be used to offset inside the heap to add more than one texture by using .Offset()
-            m_SamplerHeap->GetCPUDescriptorHandleForHeapStart()
-        };
-
-        D3D12_SAMPLER_DESC samplerDesc = {};
         {
-            samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-            samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            samplerDesc.MipLODBias = 0;
-            samplerDesc.MaxAnisotropy = 0;
-            samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-            samplerDesc.MinLOD = 0.0f;
-            samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+            // Describe and create a shader resource view (SRV) heap for the texture.
+            D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+            srvHeapDesc.NumDescriptors = 1;
+            srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            ThrowIfFailed(
+                device->CreateDescriptorHeap( &srvHeapDesc, IID_PPV_ARGS( m_SrvHeap.ReleaseAndGetAddressOf() ) ) );
         }
-        m_app.GetDevice()->CreateSampler( &samplerDesc, samplerDescriptor );
 
-        Microsoft::WRL::ComPtr<ID3D12Resource> texture;
+        m_DSVHeap = m_app.CreateDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1 );
+
+#if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
+        Microsoft::WRL::Wrappers::RoInitializeWrapper initialize( RO_INIT_MULTITHREADED );
+        if ( FAILED( initialize ) )
+            // error
+#else
+        HRESULT hr = CoInitializeEx( nullptr, COINITBASE_MULTITHREADED );
+        if ( FAILED( hr ) )
+            // error
+#endif
+
+            Microsoft::WRL::ComPtr<ID3D12Resource> texture;
+
+        ComPtr<ID3D12Resource> texture;
 
         using namespace std::filesystem;
         DirectX::ResourceUploadBatch uploadBatch( m_app.GetDevice().Get() );
@@ -74,22 +71,24 @@ namespace Olex
             m_app.GetDevice().Get(),
             uploadBatch,
             L"texture.jpg",
-            texture.ReleaseAndGetAddressOf(),
-            false ) );
+            &texture,
+            true ) );
+
+        const std::future<void> uploadTask = uploadBatch.End( m_app.GetCommandQueue().GetD3D12CommandQueue().Get() );
+        uploadTask.wait();
 
         {
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // no re-ordering of RGBA components
-            srvDesc.Format = texture->GetDesc().Format;
+            srvDesc.Format = /*DXGI_FORMAT_R8G8B8A8_UNORM*/ texture->GetDesc().Format;
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // The resource is a 2D texture.
             srvDesc.Texture2D.MostDetailedMip = 0; // so the first in memory is the largest mipmap level
-            srvDesc.Texture2D.MipLevels = texture->GetDesc().MipLevels;
+            srvDesc.Texture2D.MipLevels = 1;
             srvDesc.Texture2D.ResourceMinLODClamp = 0.0f; // A value to clamp sample LOD values to.
-            m_app.GetDevice()->CreateShaderResourceView( texture.Get(), &srvDesc, m_SamplerHeap->GetCPUDescriptorHandleForHeapStart() );
+
+            device->CreateShaderResourceView( texture.Get(), &srvDesc, m_SrvHeap->GetCPUDescriptorHandleForHeapStart() );
         }
 
-        const std::future<void> uploadTask = uploadBatch.End( m_app.GetCommandQueue().GetD3D12CommandQueue().Get() );
-        uploadTask.wait();
 
         // Create the vertex input layout
         D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
@@ -120,7 +119,7 @@ namespace Olex
         psoDesc.NumRenderTargets = 1;
         psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
         psoDesc.SampleDesc.Count = 1;
-        ThrowIfFailed( m_app.GetDevice()->CreateGraphicsPipelineState( &psoDesc, IID_PPV_ARGS( &m_PipelineState ) ) );
+        ThrowIfFailed( m_app.GetDevice()->CreateGraphicsPipelineState( &psoDesc, IID_PPV_ARGS( m_PipelineState.ReleaseAndGetAddressOf() ) ) );
 
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
 
@@ -170,34 +169,31 @@ namespace Olex
             D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
             D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS/* |
-            D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS*/;
+            D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
-            /*D3D12_STATIC_SAMPLER_DESC sampler = {};
-            sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-            sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-            sampler.MipLODBias = 0;
-            sampler.MaxAnisotropy = 0;
-            sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
-            sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-            sampler.MinLOD = 0.0f;
-            sampler.MaxLOD = D3D12_FLOAT32_MAX;
-            sampler.ShaderRegister = 0;
-            sampler.RegisterSpace = 0;
-            sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;*/
+        D3D12_STATIC_SAMPLER_DESC samplerDesc = {};
+        samplerDesc.Filter = D3D12_FILTER_ANISOTROPIC;
+        samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.MaxAnisotropy = 16;
+        samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        samplerDesc.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+        samplerDesc.MinLOD = 0;
+        samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+        samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-            // A single 32-bit constant root parameter that is used by the vertex shader.
-        CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-        rootParameters[0].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
+        // A single 32-bit constant root parameter that is used by the vertex shader.
+        CD3DX12_ROOT_PARAMETER1 rootParameters[2] = {};
         {
-            CD3DX12_DESCRIPTOR_RANGE1 descriptorRange( D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0 );
-            rootParameters[1].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_ALL ); // TODO limit to pixel shader only?
+            CD3DX12_DESCRIPTOR_RANGE1 descriptorRange = {};
+            descriptorRange.Init( D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0 );
+            rootParameters[0].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL );
         }
+        rootParameters[1].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
 
         CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
-        rootSignatureDescription.Init_1_1( _countof( rootParameters ), rootParameters, 0, nullptr, rootSignatureFlags );
+        rootSignatureDescription.Init_1_1( _countof( rootParameters ), rootParameters, 1, &samplerDesc, rootSignatureFlags );
 
         // Serialize the root signature.
         ComPtr<ID3DBlob> rootSignatureBlob;
@@ -348,8 +344,17 @@ namespace Olex
             ClearDepth( commandList, dsv );
         }
 
-        commandList->SetPipelineState( m_PipelineState.Get() );
         commandList->SetGraphicsRootSignature( m_RootSignature.Get() );
+        commandList->SetPipelineState( m_PipelineState.Get() );
+        struct ID3D12DescriptorHeap* srvHeap = m_SrvHeap.Get();
+        commandList->SetDescriptorHeaps( 1, &srvHeap );
+
+        // Update the MVP matrix
+        XMMATRIX mvpMatrix = XMMatrixMultiply( m_ModelMatrix, m_ViewMatrix );
+        mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
+        commandList->SetGraphicsRoot32BitConstants( 1, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
+
+        commandList->SetGraphicsRootDescriptorTable( 0, m_SrvHeap->GetGPUDescriptorHandleForHeapStart() );
 
         // IA = Input Assembler
         commandList->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
@@ -363,12 +368,7 @@ namespace Olex
         // OM = Output Merger
         commandList->OMSetRenderTargets( 1, &rtv, FALSE, &dsv );
 
-        // Update the MVP matrix
-        XMMATRIX mvpMatrix = XMMatrixMultiply( m_ModelMatrix, m_ViewMatrix );
-        mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
-        commandList->SetGraphicsRoot32BitConstants( 0, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
 
-        commandList->SetGraphicsRootDescriptorTable( 1, m_SamplerHeap->GetGPUDescriptorHandleForHeapStart() );
 
         // draw the cube
         commandList->DrawIndexedInstanced( _countof( m_Indices ), 1, 0, 0, 0 );

@@ -80,7 +80,6 @@ namespace Olex
         // Descriptor heap for depth buffer.
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_DSVHeap;
         // To hold a view of a texture
-        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SamplerHeap;
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SrvHeap;
 
         // Root signature
