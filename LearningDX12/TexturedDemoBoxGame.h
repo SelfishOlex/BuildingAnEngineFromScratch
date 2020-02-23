@@ -103,5 +103,8 @@ namespace Olex
         int m_Height;
 
         void CreateRootSignature();
+
+        UINT m_frameCount = 0;
+        Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
     };
 }

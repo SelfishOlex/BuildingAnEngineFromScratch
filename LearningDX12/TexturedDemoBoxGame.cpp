@@ -44,7 +44,7 @@ namespace Olex
             srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
             ThrowIfFailed(
-                device->CreateDescriptorHeap( &srvHeapDesc, IID_PPV_ARGS( m_SrvHeap.ReleaseAndGetAddressOf() ) ) );
+                device->CreateDescriptorHeap( &srvHeapDesc, IID_PPV_ARGS( &m_SrvHeap ) ) );
         }
 
         m_DSVHeap = m_app.CreateDescriptorHeap( D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1 );
@@ -61,8 +61,6 @@ namespace Olex
 
             Microsoft::WRL::ComPtr<ID3D12Resource> texture;
 
-        ComPtr<ID3D12Resource> texture;
-
         using namespace std::filesystem;
         DirectX::ResourceUploadBatch uploadBatch( m_app.GetDevice().Get() );
         uploadBatch.Begin();
@@ -71,7 +69,7 @@ namespace Olex
             m_app.GetDevice().Get(),
             uploadBatch,
             L"texture.jpg",
-            &texture,
+            &m_texture,
             true ) );
 
         const std::future<void> uploadTask = uploadBatch.End( m_app.GetCommandQueue().GetD3D12CommandQueue().Get() );
@@ -80,13 +78,13 @@ namespace Olex
         {
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // no re-ordering of RGBA components
-            srvDesc.Format = /*DXGI_FORMAT_R8G8B8A8_UNORM*/ texture->GetDesc().Format;
+            srvDesc.Format = /*DXGI_FORMAT_R8G8B8A8_UNORM*/ m_texture->GetDesc().Format;
             srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // The resource is a 2D texture.
             srvDesc.Texture2D.MostDetailedMip = 0; // so the first in memory is the largest mipmap level
             srvDesc.Texture2D.MipLevels = 1;
             srvDesc.Texture2D.ResourceMinLODClamp = 0.0f; // A value to clamp sample LOD values to.
 
-            device->CreateShaderResourceView( texture.Get(), &srvDesc, m_SrvHeap->GetCPUDescriptorHandleForHeapStart() );
+            device->CreateShaderResourceView( m_texture.Get(), &srvDesc, m_SrvHeap->GetCPUDescriptorHandleForHeapStart() );
         }
 
 
@@ -321,10 +319,14 @@ namespace Olex
         // Update the projection matrix.
         const float aspectRatio = static_cast<float>( GetClientWidth() ) / static_cast<float>( GetClientHeight() );
         m_ProjectionMatrix = XMMatrixPerspectiveFovLH( XMConvertToRadians( m_FoV ), aspectRatio, 0.1f, 100.0f );
+
+        ++m_frameCount;
     }
 
     void TexturedDemoBoxGame::Render( RenderEventArgs args )
     {
+        if (m_frameCount == 0) return;
+
         using namespace DirectX;
 
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
@@ -349,12 +351,12 @@ namespace Olex
         struct ID3D12DescriptorHeap* srvHeap = m_SrvHeap.Get();
         commandList->SetDescriptorHeaps( 1, &srvHeap );
 
+        commandList->SetGraphicsRootDescriptorTable( 0, m_SrvHeap->GetGPUDescriptorHandleForHeapStart() );
+
         // Update the MVP matrix
         XMMATRIX mvpMatrix = XMMatrixMultiply( m_ModelMatrix, m_ViewMatrix );
         mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
         commandList->SetGraphicsRoot32BitConstants( 1, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
-
-        commandList->SetGraphicsRootDescriptorTable( 0, m_SrvHeap->GetGPUDescriptorHandleForHeapStart() );
 
         // IA = Input Assembler
         commandList->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
