@@ -119,7 +119,7 @@ namespace Olex
         psoDesc.SampleDesc.Count = 1;
         ThrowIfFailed( m_app.GetDevice()->CreateGraphicsPipelineState( &psoDesc, IID_PPV_ARGS( m_PipelineState.ReleaseAndGetAddressOf() ) ) );
 
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().CreateCommandList();
 
         // Upload vertex buffer data.
         ComPtr<ID3D12Resource> intermediateVertexBuffer;
@@ -143,7 +143,7 @@ namespace Olex
         m_IndexBufferView.Format = DXGI_FORMAT_R16_UINT;
         m_IndexBufferView.SizeInBytes = sizeof( m_Indices );
 
-        const uint64_t fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
+        const FenceValue fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
         m_app.GetCommandQueue().WaitForFenceValue( fenceValue );
 
         m_ContentLoaded = true;
@@ -183,12 +183,12 @@ namespace Olex
 
         // A single 32-bit constant root parameter that is used by the vertex shader.
         CD3DX12_ROOT_PARAMETER1 rootParameters[2] = {};
+        rootParameters[0].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
         {
             CD3DX12_DESCRIPTOR_RANGE1 descriptorRange = {};
             descriptorRange.Init( D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0 );
-            rootParameters[0].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL );
+            rootParameters[1].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL );
         }
-        rootParameters[1].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
 
         CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
         rootSignatureDescription.Init_1_1( _countof( rootParameters ), rootParameters, 1, &samplerDesc, rootSignatureFlags );
@@ -196,8 +196,18 @@ namespace Olex
         // Serialize the root signature.
         ComPtr<ID3DBlob> rootSignatureBlob;
         ComPtr<ID3DBlob> errorBlob;
-        ThrowIfFailed( D3DX12SerializeVersionedRootSignature( &rootSignatureDescription,
-            featureData.HighestVersion, &rootSignatureBlob, &errorBlob ) );
+        const HRESULT hr = D3DX12SerializeVersionedRootSignature( &rootSignatureDescription,
+            featureData.HighestVersion, &rootSignatureBlob,
+            &errorBlob );
+        if ( FAILED( hr ) )
+        {
+            if ( errorBlob )
+            {
+                OutputDebugStringA( reinterpret_cast<const char*>( errorBlob->GetBufferPointer() ) );
+            }
+            ThrowIfFailed( hr );
+        }
+
         // Create the root signature.
         ThrowIfFailed( m_app.GetDevice()->CreateRootSignature( 0, rootSignatureBlob->GetBufferPointer(),
             rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS( &m_RootSignature ) ) );
@@ -325,13 +335,13 @@ namespace Olex
 
     void TexturedDemoBoxGame::Render( RenderEventArgs args )
     {
-        if (m_frameCount == 0) return;
+        if ( m_frameCount == 0 ) return;
 
-        PIXBeginEvent(PIX_COLOR_DEFAULT, L"Render");
+        PIXBeginEvent( PIX_COLOR_DEFAULT, L"Render" );
 
         using namespace DirectX;
 
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().CreateCommandList();
 
         Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer = m_app.GetCurrentBackBuffer();
         D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_app.GetCurrentRenderTargetView();
@@ -353,12 +363,13 @@ namespace Olex
         struct ID3D12DescriptorHeap* srvHeap = m_SrvHeap.Get();
         commandList->SetDescriptorHeaps( 1, &srvHeap );
 
-        commandList->SetGraphicsRootDescriptorTable( 0, m_SrvHeap->GetGPUDescriptorHandleForHeapStart() );
+        // bind the texture for the draw call
+        commandList->SetGraphicsRootDescriptorTable( 1, m_SrvHeap->GetGPUDescriptorHandleForHeapStart() );
 
         // Update the MVP matrix
         XMMATRIX mvpMatrix = XMMatrixMultiply( m_ModelMatrix, m_ViewMatrix );
         mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
-        commandList->SetGraphicsRoot32BitConstants( 1, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
+        commandList->SetGraphicsRoot32BitConstants( 0, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
 
         // IA = Input Assembler
         commandList->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
@@ -378,14 +389,14 @@ namespace Olex
         commandList->DrawIndexedInstanced( _countof( m_Indices ), 1, 0, 0, 0 );
 
         PIXEndEvent();
-        PIXBeginEvent(PIX_COLOR_DEFAULT, L"Present");
+        PIXBeginEvent( PIX_COLOR_DEFAULT, L"Present" );
 
         // Present
         {
             TransitionResource( commandList, backBuffer,
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
 
-            const uint64_t fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
+            const FenceValue fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
 
             m_app.Present();
 

@@ -135,77 +135,38 @@ namespace Olex
 
         ThrowIfFailed( CreateDXGIFactory2( createFactoryFlags, IID_PPV_ARGS( &dxgiFactory ) ) );
 
-        ComPtr<IDXGIAdapter1> adapter;
+        ComPtr<IDXGIAdapter1> dxgiAdapter1;
+        ComPtr<IDXGIAdapter4> dxgiAdapter4;
 
-        ComPtr<IDXGIFactory6> factory6;
-        HRESULT hr = dxgiFactory.As( &factory6 );
-        if ( SUCCEEDED( hr ) )
+        if ( useWarp )
         {
-            for ( UINT adapterIndex = 0;
-                SUCCEEDED( factory6->EnumAdapterByGpuPreference(
-                    adapterIndex,
-                    DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                    IID_PPV_ARGS( adapter.ReleaseAndGetAddressOf() ) ) );
-                adapterIndex++ )
+            ThrowIfFailed( dxgiFactory->EnumWarpAdapter( IID_PPV_ARGS( &dxgiAdapter1 ) ) );
+            ThrowIfFailed( dxgiAdapter1.As( &dxgiAdapter4 ) );
+        }
+        else
+        {
+            SIZE_T maxDedicatedVideoMemory = 0;
+            for ( UINT i = 0; dxgiFactory->EnumAdapters1( i, &dxgiAdapter1 ) != DXGI_ERROR_NOT_FOUND; ++i )
             {
-                DXGI_ADAPTER_DESC1 desc;
-                ThrowIfFailed( adapter->GetDesc1( &desc ) );
+                DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
+                dxgiAdapter1->GetDesc1( &dxgiAdapterDesc1 );
 
-                if ( desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE )
+                // Check to see if the adapter can create a D3D12 device without actually
+                // creating it. The adapter with the largest dedicated video memory
+                // is favored.
+                if ( ( dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE ) == 0 ) // looking only for hardware interfaces
                 {
-                    // Don't select the Basic Render Driver adapter.
-                    continue;
-                }
-
-                // Check to see if the adapter supports Direct3D 12, but don't create the actual device yet.
-                if ( SUCCEEDED( D3D12CreateDevice( adapter.Get(), D3D_FEATURE_LEVEL_12_1, _uuidof( ID3D12Device ), nullptr ) ) )
-                {
-#ifdef _DEBUG
-                    wchar_t buff[256] = {};
-                    swprintf_s( buff, L"Direct3D Adapter (%u): VID:%04X, PID:%04X - %ls\n", adapterIndex, desc.VendorId, desc.DeviceId, desc.Description );
-                    OutputDebugStringW( buff );
-#endif
-                    break;
+                    if ( SUCCEEDED( D3D12CreateDevice( dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_1, __uuidof( ID3D12Device ), nullptr ) ) &&
+                        dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory )
+                    {
+                        maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
+                        ThrowIfFailed( dxgiAdapter1.As( &dxgiAdapter4 ) );
+                    }
                 }
             }
         }
 
-        ComPtr<IDXGIAdapter4> dxgiAdapter4;
-        ThrowIfFailed( adapter.As( &dxgiAdapter4 ) );
         return dxgiAdapter4;
-
-        //ComPtr<IDXGIAdapter1> dxgiAdapter1;
-        //ComPtr<IDXGIAdapter4> dxgiAdapter4;
-
-        //if ( useWarp )
-        //{
-        //    ThrowIfFailed( dxgiFactory->EnumWarpAdapter( IID_PPV_ARGS( &dxgiAdapter1 ) ) );
-        //    ThrowIfFailed( dxgiAdapter1.As( &dxgiAdapter4 ) );
-        //}
-        //else
-        //{
-        //    SIZE_T maxDedicatedVideoMemory = 0;
-        //    for ( UINT i = 0; dxgiFactory->EnumAdapters1( i, &dxgiAdapter1 ) != DXGI_ERROR_NOT_FOUND; ++i )
-        //    {
-        //        DXGI_ADAPTER_DESC1 dxgiAdapterDesc1;
-        //        dxgiAdapter1->GetDesc1( &dxgiAdapterDesc1 );
-
-        //        // Check to see if the adapter can create a D3D12 device without actually
-        //        // creating it. The adapter with the largest dedicated video memory
-        //        // is favored.
-        //        if ( ( dxgiAdapterDesc1.Flags & DXGI_ADAPTER_FLAG_SOFTWARE ) == 0 ) // looking only for hardware interfaces
-        //        {
-        //            if ( SUCCEEDED( D3D12CreateDevice( dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_1, __uuidof( ID3D12Device ), nullptr ) ) &&
-        //                dxgiAdapterDesc1.DedicatedVideoMemory > maxDedicatedVideoMemory )
-        //            {
-        //                maxDedicatedVideoMemory = dxgiAdapterDesc1.DedicatedVideoMemory;
-        //                ThrowIfFailed( dxgiAdapter1.As( &dxgiAdapter4 ) );
-        //            }
-        //        }
-        //    }
-        //}
-
-        //return dxgiAdapter4;
     }
 
     Microsoft::WRL::ComPtr<ID3D12Device2> DX12App::CreateDevice( Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter )
@@ -492,7 +453,7 @@ namespace Olex
         {
             auto backBuffer = m_BackBuffers[m_CurrentBackBufferIndex];
 
-            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_CommandQueue->GetCommandList();
+            Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_CommandQueue->CreateCommandList();
 
             // Clear the render target.
             {
@@ -515,7 +476,7 @@ namespace Olex
                     D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
                 commandList->ResourceBarrier( 1, &barrier );
 
-                const uint64_t fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList( commandList );
+                const FenceValue fenceValueToWaitOn = m_CommandQueue->ExecuteCommandList(commandList);
 
                 Present();
 

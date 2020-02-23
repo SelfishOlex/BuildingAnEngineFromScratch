@@ -59,10 +59,10 @@ namespace Olex
         { DirectX::XMFLOAT3( -1.0f,  1.0f, -1.0f ), DirectX::XMFLOAT2( 0.0f, 1.0f ) }, // 1
         { DirectX::XMFLOAT3( 1.0f,  1.0f, -1.0f ), DirectX::XMFLOAT2( 1.0f, 1.0f ) }, // 2
         { DirectX::XMFLOAT3( 1.0f, -1.0f, -1.0f ), DirectX::XMFLOAT2( 1.0f, 0.0f ) }, // 3
-        { DirectX::XMFLOAT3( -1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT2( 0.0f, 0.0f ) }, // 4
-        { DirectX::XMFLOAT3( -1.0f,  1.0f,  1.0f ), DirectX::XMFLOAT2( 0.0f, 1.0f ) }, // 5
+        { DirectX::XMFLOAT3( -1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT2( 0.0f, 1.0f ) }, // 4
+        { DirectX::XMFLOAT3( -1.0f,  1.0f,  1.0f ), DirectX::XMFLOAT2( 1.0f, 1.0f ) }, // 5
         { DirectX::XMFLOAT3( 1.0f,  1.0f,  1.0f ), DirectX::XMFLOAT2( 1.0f, 1.0f ) }, // 6
-        { DirectX::XMFLOAT3( 1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT2( 1.0f, 0.0f ) }  // 7
+        { DirectX::XMFLOAT3( 1.0f, -1.0f,  1.0f ), DirectX::XMFLOAT2( 0.0f, 0.0f ) }  // 7
         };
 
         WORD m_Indices[36] =

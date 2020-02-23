@@ -1,5 +1,7 @@
 #include "DemoBoxGame.h"
 
+
+#include <algorithm>
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
@@ -29,7 +31,7 @@ namespace Olex
     {
         Microsoft::WRL::ComPtr<ID3D12Device2> device = m_app.GetDevice();
 
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().CreateCommandList();
 
         // Upload vertex buffer data.
         ComPtr<ID3D12Resource> intermediateVertexBuffer;
@@ -134,7 +136,7 @@ namespace Olex
         };
         ThrowIfFailed( device->CreatePipelineState( &pipelineStateStreamDesc, IID_PPV_ARGS( &m_PipelineState ) ) );
 
-        const uint64_t fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
+        const auto fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
         m_app.GetCommandQueue().WaitForFenceValue( fenceValue );
 
         m_ContentLoaded = true;
@@ -240,7 +242,7 @@ namespace Olex
     {
         using namespace DirectX;
 
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().CreateCommandList();
 
         Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer = m_app.GetCurrentBackBuffer();
         D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_app.GetCurrentRenderTargetView();
@@ -285,7 +287,7 @@ namespace Olex
             TransitionResource( commandList, backBuffer,
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
 
-            const uint64_t fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
+            const auto fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
 
             m_app.Present();
 

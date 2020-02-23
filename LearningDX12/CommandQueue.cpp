@@ -6,24 +6,20 @@
 
 namespace Olex
 {
+    using namespace Microsoft::WRL;
+
     CommandQueue::CommandQueue( DX12App& application, D3D12_COMMAND_LIST_TYPE type )
         : m_app( application )
         , m_CommandListType( type )
     {
-        D3D12_COMMAND_QUEUE_DESC desc = {};
-        desc.Type = type;
-        desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
-        desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        desc.NodeMask = 0;
-
         m_d3d12CommandQueue = m_app.CreateCommandQueue( D3D12_COMMAND_LIST_TYPE_DIRECT );
-        m_d3d12Fence = m_app.CreateFence( m_FenceValue );
+        m_d3d12Fence = m_app.CreateFence( m_FenceValue.Get() );
         m_FenceEvent = m_app.CreateEventHandle();
     }
 
     CommandQueue::~CommandQueue()
     {
-        ::CloseHandle( m_FenceEvent );
+        CloseHandle( m_FenceEvent );
     }
 
     void CommandQueue::ThrowIfFailed( HRESULT hr )
@@ -34,103 +30,63 @@ namespace Olex
         }
     }
 
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CommandQueue::CreateCommandAllocator()
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CommandQueue::CreateCommandList()
     {
-        return m_app.CreateCommandAllocator( m_CommandListType );
-    }
-
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CommandQueue::CreateCommandList( Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator )
-    {
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.CreateCommandList2( allocator, m_CommandListType );
-        return commandList;
-    }
-
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> CommandQueue::GetCommandList()
-    {
-        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator;
-        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList;
-
-        if ( !m_CommandAllocatorQueue.empty() && IsFenceComplete( m_CommandAllocatorQueue.front().fenceValue ) )
-        {
-            commandAllocator = m_CommandAllocatorQueue.front().commandAllocator;
-            m_CommandAllocatorQueue.pop();
-
-            ThrowIfFailed( commandAllocator->Reset() );
-        }
-        else
-        {
-            commandAllocator = CreateCommandAllocator();
-        }
-
-        if ( !m_CommandListQueue.empty() )
-        {
-            commandList = m_CommandListQueue.front();
-            m_CommandListQueue.pop();
-
-            ThrowIfFailed( commandList->Reset( commandAllocator.Get(), nullptr ) );
-        }
-        else
-        {
-            commandList = CreateCommandList( commandAllocator );
-        }
+        ComPtr<ID3D12CommandAllocator> allocator = m_app.CreateCommandAllocator( m_CommandListType );
+        ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.CreateCommandList2( allocator, m_CommandListType );
 
         // Associate the command allocator with the command list so that it can be
         // retrieved when the command list is executed.
-        ThrowIfFailed( commandList->SetPrivateDataInterface( __uuidof( ID3D12CommandAllocator ), commandAllocator.Get() ) );
+        ThrowIfFailed( commandList->SetPrivateDataInterface( __uuidof( ID3D12CommandAllocator ), allocator.Get() ) );
 
         return commandList;
     }
 
-    uint64_t CommandQueue::ExecuteCommandList( Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList )
+    FenceValue CommandQueue::ExecuteCommandList( ComPtr<ID3D12GraphicsCommandList2> commandList )
     {
         commandList->Close();
-
-        ID3D12CommandAllocator* commandAllocator;
-        UINT dataSize = sizeof( commandAllocator );
-        ThrowIfFailed( commandList->GetPrivateData( __uuidof( ID3D12CommandAllocator ), &dataSize, &commandAllocator ) );
 
         ID3D12CommandList* const ppCommandLists[] = {
             commandList.Get()
         };
 
         m_d3d12CommandQueue->ExecuteCommandLists( 1, ppCommandLists );
-        const uint64_t fenceValue = Signal();
+        const FenceValue fenceValue = Signal();
 
-        m_CommandAllocatorQueue.emplace( CommandAllocatorEntry{ fenceValue, commandAllocator } );
-        m_CommandListQueue.push( commandList );
-
-        // The ownership of the command allocator has been transferred to the ComPtr
-        // in the command allocator queue. It is safe to release the reference
-        // in this temporary COM pointer here.
-        commandAllocator->Release();
-
+        m_commandLists.push_back({commandList, fenceValue});
         return fenceValue;
     }
 
-    uint64_t CommandQueue::Signal()
+    FenceValue CommandQueue::Signal()
     {
-        const uint64_t fenceValueForSignal = ++m_FenceValue;
-        ThrowIfFailed( m_d3d12CommandQueue->Signal( m_d3d12Fence.Get(), fenceValueForSignal ) );
+        const FenceValue fenceValueForSignal = ++m_FenceValue;
+        ThrowIfFailed( m_d3d12CommandQueue->Signal( m_d3d12Fence.Get(), fenceValueForSignal.Get() ) );
         return fenceValueForSignal;
     }
 
-    bool CommandQueue::IsFenceComplete( uint64_t fenceValue )
-    {
-        return false;
-    }
 
-    void CommandQueue::WaitForFenceValue( uint64_t fenceValue, std::chrono::milliseconds duration )
+    void CommandQueue::WaitForFenceValue( FenceValue fenceValue )
     {
-        if ( m_d3d12Fence->GetCompletedValue() < fenceValue )
+        if ( m_d3d12Fence->GetCompletedValue() < fenceValue.Get() )
         {
-            ThrowIfFailed( m_d3d12Fence->SetEventOnCompletion( fenceValue, m_FenceEvent ) );
-            ::WaitForSingleObject( m_FenceEvent, static_cast<DWORD>( duration.count() ) );
+            ThrowIfFailed( m_d3d12Fence->SetEventOnCompletion( fenceValue.Get(), m_FenceEvent ) );
+            WaitForSingleObject( m_FenceEvent, 9001 );
+        }
+
+        const auto itemByFenceValue = std::find_if(m_commandLists.begin(), m_commandLists.end(), [&fenceValue](const CommandListInFlight& item)
+        {
+            return item.m_fenceValue == fenceValue;
+        });
+
+        if (itemByFenceValue != m_commandLists.end())
+        {
+            m_commandLists.erase(itemByFenceValue);
         }
     }
 
     void CommandQueue::Flush()
     {
-        const uint64_t fenceValueForSignal = Signal();
+        const FenceValue fenceValueForSignal = Signal();
         WaitForFenceValue( fenceValueForSignal );
     }
 }
