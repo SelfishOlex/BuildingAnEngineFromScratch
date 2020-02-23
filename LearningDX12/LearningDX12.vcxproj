@@ -150,7 +150,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>D3d12.lib;DXGI.lib;D3Dcompiler.lib;dxguid.lib;DirectXTK12.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D3d12.lib;DXGI.lib;D3Dcompiler.lib;dxguid.lib;DirectXTK12.lib;Windowsapp.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(MSBuildProjectDirectory)\..\DirectXTK12\Bin\Desktop_2019_Win10\x64\Release</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

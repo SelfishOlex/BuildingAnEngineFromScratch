@@ -327,6 +327,8 @@ namespace Olex
     {
         if (m_frameCount == 0) return;
 
+        PIXBeginEvent(PIX_COLOR_DEFAULT, L"Render");
+
         using namespace DirectX;
 
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().GetCommandList();
@@ -375,6 +377,9 @@ namespace Olex
         // draw the cube
         commandList->DrawIndexedInstanced( _countof( m_Indices ), 1, 0, 0, 0 );
 
+        PIXEndEvent();
+        PIXBeginEvent(PIX_COLOR_DEFAULT, L"Present");
+
         // Present
         {
             TransitionResource( commandList, backBuffer,
@@ -386,5 +391,7 @@ namespace Olex
 
             m_app.GetCommandQueue().WaitForFenceValue( fenceValue );
         }
+
+        PIXEndEvent();
     }
 }
