@@ -13,6 +13,18 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Demos">
+      <UniqueIdentifier>{97104f9d-1a0b-4240-871a-94757bb3014c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Demos\Demo_01_Init">
+      <UniqueIdentifier>{4e36396b-3362-4095-b4ec-dc824601843a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Demos\Demo_02_SimpleCube">
+      <UniqueIdentifier>{8d3b4b25-7fcb-4707-b43c-3ce0bb40058c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Demos\Demo_03_TexturedCube">
+      <UniqueIdentifier>{e00b7127-daef-4e93-b5c3-565f619e8cbe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -27,43 +39,43 @@
     <ClInclude Include="LearningDX12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DX12App.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="d3dx12.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommandQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DemoBoxGame.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="BaseGameInterface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DemoBoxGame.h">
+      <Filter>Demos\Demo_02_SimpleCube</Filter>
+    </ClInclude>
+    <ClInclude Include="DX12App.h">
+      <Filter>Demos\Demo_01_Init</Filter>
+    </ClInclude>
     <ClInclude Include="TexturedDemoBoxGame.h">
-      <Filter>Header Files</Filter>
+      <Filter>Demos\Demo_03_TexturedCube</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LearningDX12.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DX12App.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CommandQueue.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DemoBoxGame.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BaseGameInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DemoBoxGame.cpp">
+      <Filter>Demos\Demo_02_SimpleCube</Filter>
+    </ClCompile>
+    <ClCompile Include="DX12App.cpp">
+      <Filter>Demos\Demo_01_Init</Filter>
+    </ClCompile>
     <ClCompile Include="TexturedDemoBoxGame.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Demos\Demo_03_TexturedCube</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -80,22 +92,22 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="VertexShader.hlsl">
-      <Filter>Resource Files</Filter>
-    </FxCompile>
-    <FxCompile Include="PixelShader.hlsl">
-      <Filter>Resource Files</Filter>
-    </FxCompile>
     <FxCompile Include="VertexShader_Textured.hlsl">
-      <Filter>Resource Files</Filter>
+      <Filter>Demos\Demo_03_TexturedCube</Filter>
     </FxCompile>
     <FxCompile Include="PixelShader_Textured.hlsl">
-      <Filter>Resource Files</Filter>
+      <Filter>Demos\Demo_03_TexturedCube</Filter>
+    </FxCompile>
+    <FxCompile Include="VertexShader.hlsl">
+      <Filter>Demos\Demo_02_SimpleCube</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelShader.hlsl">
+      <Filter>Demos\Demo_02_SimpleCube</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="texture.jpg">
-      <Filter>Resource Files</Filter>
+      <Filter>Demos\Demo_03_TexturedCube</Filter>
     </CopyFileToFolders>
   </ItemGroup>
 </Project>
