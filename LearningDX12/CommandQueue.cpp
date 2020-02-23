@@ -53,7 +53,22 @@ namespace Olex
         m_d3d12CommandQueue->ExecuteCommandLists( 1, ppCommandLists );
         const FenceValue fenceValue = Signal();
 
-        m_commandLists.push_back({commandList, fenceValue});
+        bool found = false;
+        for (CommandListInFlight& item : m_commandLists)
+        {
+            if (item.m_fenceValue.Get() == 0)
+            {
+                item = CommandListInFlight{commandList, fenceValue};
+                found = true;
+                break;
+            }
+        }
+
+        if (found == false)
+        {
+            throw std::exception();
+        }
+
         return fenceValue;
     }
 
@@ -73,14 +88,16 @@ namespace Olex
             WaitForSingleObject( m_FenceEvent, 9001 );
         }
 
-        const auto itemByFenceValue = std::find_if(m_commandLists.begin(), m_commandLists.end(), [&fenceValue](const CommandListInFlight& item)
+        for (CommandListInFlight& item : m_commandLists)
         {
-            return item.m_fenceValue == fenceValue;
-        });
-
-        if (itemByFenceValue != m_commandLists.end())
-        {
-            m_commandLists.erase(itemByFenceValue);
+            if (item.m_fenceValue.Get() != 0)
+            {
+                if (item.m_fenceValue == fenceValue)
+                {
+                    item = {};
+                }
+                break;
+            }
         }
     }
 

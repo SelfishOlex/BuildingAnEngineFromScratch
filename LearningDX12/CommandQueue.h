@@ -7,7 +7,7 @@
 #include <d3d12.h>  // For ID3D12CommandQueue, ID3D12Device2, and ID3D12Fence
 #include <wrl.h>    // For Microsoft::WRL::ComPtr
 #include <cstdint>  // For uint64_t
-#include <vector>   // For std::vector
+#include <array>
 
 namespace Olex
 {
@@ -57,10 +57,10 @@ namespace Olex
         struct CommandListInFlight
         {
             Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2>  m_commandList;
-            FenceValue                                          m_fenceValue;
+            FenceValue                                          m_fenceValue{0};
         };
 
-        std::vector<CommandListInFlight> m_commandLists;
+        std::array<CommandListInFlight, 4> m_commandLists;
 
         void ThrowIfFailed( HRESULT hr );
     };

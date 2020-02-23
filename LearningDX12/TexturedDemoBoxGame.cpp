@@ -184,11 +184,10 @@ namespace Olex
         // A single 32-bit constant root parameter that is used by the vertex shader.
         CD3DX12_ROOT_PARAMETER1 rootParameters[2] = {};
         rootParameters[0].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
-        {
-            CD3DX12_DESCRIPTOR_RANGE1 descriptorRange = {};
-            descriptorRange.Init( D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0 );
-            rootParameters[1].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL );
-        }
+
+        CD3DX12_DESCRIPTOR_RANGE1 descriptorRange = {};
+        descriptorRange.Init( D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, 0 );
+        rootParameters[1].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL );
 
         CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
         rootSignatureDescription.Init_1_1( _countof( rootParameters ), rootParameters, 1, &samplerDesc, rootSignatureFlags );
@@ -336,6 +335,7 @@ namespace Olex
     void TexturedDemoBoxGame::Render( RenderEventArgs args )
     {
         if ( m_frameCount == 0 ) return;
+        m_app.GetCommandQueue().WaitForFenceValue( m_lastFenceValue );
 
         PIXBeginEvent( PIX_COLOR_DEFAULT, L"Render" );
 
@@ -383,8 +383,6 @@ namespace Olex
         // OM = Output Merger
         commandList->OMSetRenderTargets( 1, &rtv, FALSE, &dsv );
 
-
-
         // draw the cube
         commandList->DrawIndexedInstanced( _countof( m_Indices ), 1, 0, 0, 0 );
 
@@ -396,11 +394,9 @@ namespace Olex
             TransitionResource( commandList, backBuffer,
                 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT );
 
-            const FenceValue fenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
+            m_lastFenceValue = m_app.GetCommandQueue().ExecuteCommandList( commandList );
 
             m_app.Present();
-
-            m_app.GetCommandQueue().WaitForFenceValue( fenceValue );
         }
 
         PIXEndEvent();

@@ -106,5 +106,7 @@ namespace Olex
 
         UINT m_frameCount = 0;
         Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
+
+        FenceValue m_lastFenceValue{0};
     };
 }
