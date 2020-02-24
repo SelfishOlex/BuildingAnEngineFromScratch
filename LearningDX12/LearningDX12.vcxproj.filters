@@ -25,6 +25,12 @@
     <Filter Include="Demos\Demo_03_TexturedCube">
       <UniqueIdentifier>{e00b7127-daef-4e93-b5c3-565f619e8cbe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Demos\Demo_04_Lighting">
+      <UniqueIdentifier>{a432de86-e962-47a1-8236-2c0a14a4ba71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FBX">
+      <UniqueIdentifier>{007925c2-fb70-44bc-bd7a-eff74d9fdb61}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -57,6 +63,12 @@
     <ClInclude Include="TexturedDemoBoxGame.h">
       <Filter>Demos\Demo_03_TexturedCube</Filter>
     </ClInclude>
+    <ClInclude Include="LightingTexturedDemoBoxGame.h">
+      <Filter>Demos\Demo_04_Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="FbxLoader.h">
+      <Filter>FBX</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LearningDX12.cpp">
@@ -76,6 +88,12 @@
     </ClCompile>
     <ClCompile Include="TexturedDemoBoxGame.cpp">
       <Filter>Demos\Demo_03_TexturedCube</Filter>
+    </ClCompile>
+    <ClCompile Include="LightingTexturedDemoBoxGame.cpp">
+      <Filter>Demos\Demo_04_Lighting</Filter>
+    </ClCompile>
+    <ClCompile Include="FbxLoader.cpp">
+      <Filter>FBX</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -104,10 +122,16 @@
     <FxCompile Include="PixelShader.hlsl">
       <Filter>Demos\Demo_02_SimpleCube</Filter>
     </FxCompile>
+    <FxCompile Include="PixelShader_Textured_Light.hlsl">
+      <Filter>Demos\Demo_04_Lighting</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="texture.jpg">
       <Filter>Demos\Demo_03_TexturedCube</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="model.fbx">
+      <Filter>Resource Files</Filter>
     </CopyFileToFolders>
   </ItemGroup>
 </Project>

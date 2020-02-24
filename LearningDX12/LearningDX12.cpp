@@ -11,6 +11,8 @@
 #include "DemoBoxGame.h"
 #include "DX12App.h"
 #include <shellapi.h>
+
+#include "LightingTexturedDemoBoxGame.h"
 #include "TexturedDemoBoxGame.h"
 
 #define MAX_LOADSTRING 100
@@ -56,8 +58,6 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_LEARNINGDX12 ) );
-
     // Choose a demo here
     {
         int argc;
@@ -83,6 +83,10 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
                     SetWindowText(window, L"Demo: Textured Cube");
                     globalApplication->SetGame( std::make_unique<Olex::TexturedDemoBoxGame>( *globalApplication ) );
                     break;
+                case 3:
+                    SetWindowText(window, L"Demo: Textured Cube with Lighting");
+                    globalApplication->SetGame( std::make_unique<Olex::LightingTexturedDemoBoxGame>( *globalApplication ) );
+                    break;
                 default:
                     SetWindowText(window, L"No Demo");
                     break;
@@ -99,11 +103,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     // Main message loop:
     while ( GetMessage( &msg, nullptr, 0, 0 ) )
     {
-        if ( !TranslateAccelerator( msg.hwnd, hAccelTable, &msg ) )
-        {
-            TranslateMessage( &msg );
-            DispatchMessage( &msg );
-        }
+        TranslateMessage( &msg );
+        DispatchMessage( &msg );
     }
 
     globalApplication.reset();
