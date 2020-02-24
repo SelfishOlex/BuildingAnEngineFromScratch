@@ -93,15 +93,16 @@ namespace Olex
         D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12 + 8, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
 
         // Load the vertex shader.
         ComPtr<ID3DBlob> vertexShaderBlob;
-        ThrowIfFailed( D3DReadFileToBlob( L"VertexShader_Textured.cso", &vertexShaderBlob ) );
+        ThrowIfFailed( D3DReadFileToBlob( L"VertexShader_Textured_Light.cso", &vertexShaderBlob ) );
 
         // Load the pixel shader.
         ComPtr<ID3DBlob> pixelShaderBlob;
-        ThrowIfFailed( D3DReadFileToBlob( L"PixelShader_Textured.cso", &pixelShaderBlob ) );
+        ThrowIfFailed( D3DReadFileToBlob( L"PixelShader_Textured_Light.cso", &pixelShaderBlob ) );
 
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -391,7 +392,7 @@ namespace Olex
         commandList->OMSetRenderTargets( 1, &rtv, FALSE, &dsv );
 
         // draw the model
-        const UINT indexCount = static_cast<UINT>( m_fbxLoader->GetMeshes()[0].m_indices.size() * 3 );
+        static const UINT indexCount = static_cast<UINT>( m_fbxLoader->GetMeshes()[0].m_indices.size() * 3 );
         commandList->DrawIndexedInstanced( indexCount, 1, 0, 0, 0 );
 
         PIXEndEvent();

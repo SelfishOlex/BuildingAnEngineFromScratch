@@ -125,6 +125,9 @@
     <FxCompile Include="PixelShader_Textured_Light.hlsl">
       <Filter>Demos\Demo_04_Lighting</Filter>
     </FxCompile>
+    <FxCompile Include="VertexShader_Textured_Light.hlsl">
+      <Filter>Demos\Demo_04_Lighting</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="texture.jpg">
