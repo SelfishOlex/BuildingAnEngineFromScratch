@@ -147,7 +147,7 @@ namespace Olex
             const char* uvName = lUVNames[0]; ///
 
             const int polygonCount = fbxMesh->GetPolygonCount();
-            mesh.m_indices.reserve(polygonCount);
+            mesh.m_indices.reserve( polygonCount );
 
             for ( int polygonIndex = 0; polygonIndex < polygonCount; ++polygonIndex )
             {
@@ -159,22 +159,21 @@ namespace Olex
 
                 bool unmapped;
                 FbxVector2 uv;
-                const bool result = fbxMesh->GetPolygonVertexUV( polygonIndex, 0, uvName, uv, unmapped );
+                bool result = fbxMesh->GetPolygonVertexUV( polygonIndex, 0, uvName, uv, unmapped );
                 mesh.m_vertices[vertexIndex0].m_uv = { static_cast<float>( uv.Buffer()[0] ), static_cast<float>( uv.Buffer()[1] ) };
+                result = fbxMesh->GetPolygonVertexUV( polygonIndex, 1, uvName, uv, unmapped );
+                mesh.m_vertices[vertexIndex1].m_uv = { static_cast<float>( uv.Buffer()[0] ), static_cast<float>( uv.Buffer()[1] ) };
+                result = fbxMesh->GetPolygonVertexUV( polygonIndex, 2, uvName, uv, unmapped );
+                mesh.m_vertices[vertexIndex2].m_uv = { static_cast<float>( uv.Buffer()[0] ), static_cast<float>( uv.Buffer()[1] ) };
+
+                FbxVector4 normal;
+                result = fbxMesh->GetPolygonVertexNormal( polygonIndex, 0, normal );
+                mesh.m_vertices[vertexIndex0].m_normal = { static_cast<float>( normal.Buffer()[0] ), static_cast<float>( normal.Buffer()[1] ), static_cast<float>( normal.Buffer()[2] ) };
+                result = fbxMesh->GetPolygonVertexNormal( polygonIndex, 1, normal );
+                mesh.m_vertices[vertexIndex1].m_normal = { static_cast<float>( normal.Buffer()[0] ), static_cast<float>( normal.Buffer()[1] ), static_cast<float>( normal.Buffer()[2] ) };
+                result = fbxMesh->GetPolygonVertexNormal( polygonIndex, 2, normal );
+                mesh.m_vertices[vertexIndex2].m_normal = { static_cast<float>( normal.Buffer()[0] ), static_cast<float>( normal.Buffer()[1] ), static_cast<float>( normal.Buffer()[2] ) };
             }
-
-            /*const int* indexBuffer = fbxMesh->GetPolygonVertices();
-            const int indexCount = fbxMesh->GetPolygonVertexCount();
-
-            for ( int index = 0; index < indexCount; ++index )
-            {
-                const auto buffer = indexBuffer[index];
-                DirectX::XMFLOAT3 vertex = { static_cast<float>( buffer[0] ), static_cast<float>( buffer[1] ), static_cast<float>( buffer[2] ) };
-                mesh.m_positions.push_back( vertex );
-            }*/
-
-            /*int uvCount = fbxMesh->GetTextureUV();
-            int uvCount = fbxMesh->GetTextureUVCount();*/
         }
 
         return mesh;

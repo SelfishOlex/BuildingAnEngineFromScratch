@@ -16,8 +16,8 @@ namespace Olex
             struct VertexInfo
             {
                 DirectX::XMFLOAT3 m_position;
-                //DirectX::XMFLOAT3 m_normal;
                 DirectX::XMFLOAT2 m_uv;
+                DirectX::XMFLOAT3 m_normal;
             };
 
             std::vector<VertexInfo> m_vertices;

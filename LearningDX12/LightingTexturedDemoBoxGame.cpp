@@ -390,8 +390,9 @@ namespace Olex
         // OM = Output Merger
         commandList->OMSetRenderTargets( 1, &rtv, FALSE, &dsv );
 
-        // draw the cube
-        commandList->DrawIndexedInstanced( m_fbxLoader->GetMeshes()[0].m_indices.size() * 3, 1, 0, 0, 0 );
+        // draw the model
+        const UINT indexCount = static_cast<UINT>( m_fbxLoader->GetMeshes()[0].m_indices.size() * 3 );
+        commandList->DrawIndexedInstanced( indexCount, 1, 0, 0, 0 );
 
         PIXEndEvent();
         PIXBeginEvent( PIX_COLOR_DEFAULT, L"Present" );
