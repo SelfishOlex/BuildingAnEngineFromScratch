@@ -340,10 +340,9 @@ namespace Olex
 
         // update light information
         m_lightInfo.m_eyePosition = {0, -10, 0}; // TODO remove duplication here
-        m_lightInfo.m_directionalLightCount = 1;
-        m_lightInfo.m_directionLights[0].m_color = {1, 0, 0};
-        m_lightInfo.m_directionLights[0].m_intensity = 1000.f;
-        m_lightInfo.m_directionLights[0].m_directionalLight = {0, -1, -1};
+        m_lightInfo.m_directionLight.m_color = {1, 0, 0};
+        m_lightInfo.m_directionLight.m_intensity = 1.f;
+        m_lightInfo.m_directionLight.m_direction = {0, -1, -1};
 
         ++m_frameCount;
     }
@@ -351,7 +350,6 @@ namespace Olex
     void LightingTexturedDemoBoxGame::Render( RenderEventArgs args )
     {
         if ( m_frameCount == 0 ) return;
-        m_app.GetCommandQueue().WaitForFenceValue( m_lastFenceValue );
 
         PIXBeginEvent( PIX_COLOR_DEFAULT, L"Render" );
 
@@ -379,13 +377,13 @@ namespace Olex
         struct ID3D12DescriptorHeap* srvHeap = m_SrvHeap.Get();
         commandList->SetDescriptorHeaps( 1, &srvHeap );
 
-        // bind the texture for the draw call
-        commandList->SetGraphicsRootDescriptorTable( 1, m_SrvHeap->GetGPUDescriptorHandleForHeapStart() );
-
         // Update the MVP matrix
         XMMATRIX mvpMatrix = XMMatrixMultiply( m_ModelMatrix, m_ViewMatrix );
         mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
         commandList->SetGraphicsRoot32BitConstants( 0, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
+
+        // bind the texture for the draw call
+        commandList->SetGraphicsRootDescriptorTable( 1, m_SrvHeap->GetGPUDescriptorHandleForHeapStart() );
 
         // Update light info
         commandList->SetGraphicsRoot32BitConstants( 2, sizeof( LightInfo ) / 4, &m_lightInfo, 0 );
@@ -418,6 +416,7 @@ namespace Olex
 
             m_app.Present();
         }
+        m_app.GetCommandQueue().WaitForFenceValue( m_lastFenceValue );
 
         PIXEndEvent();
     }

@@ -8,6 +8,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--demo 2</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--demo 3</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

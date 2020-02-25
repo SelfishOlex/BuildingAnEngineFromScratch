@@ -17,15 +17,14 @@ namespace Olex
     {
         struct DirectionalLight
         {
-            DirectX::XMFLOAT3 m_color;
-            DirectX::XMFLOAT3 m_directionalLight;
-            float m_intensity;
+            DirectX::XMFLOAT3 m_color = {0, 1, 0};
+            DirectX::XMFLOAT3 m_direction = {0, -1, -1};
+            float m_intensity = 1.f;
         };
 
-        int m_directionalLightCount = 1;
-        DirectionalLight m_directionLights[4];
+        DirectionalLight m_directionLight;
 
-        DirectX::XMFLOAT3 m_eyePosition;
+        DirectX::XMFLOAT3 m_eyePosition = {0, 0, 0};
     };
 
     class LightingTexturedDemoBoxGame final

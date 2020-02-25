@@ -33,7 +33,7 @@ VertexShaderOutput main(VertexPosColor IN)
     // transform to world space
     OUT.Position = mul(ModelViewProjectionCB.MVP, float4(IN.Position, 1.0f));
     OUT.uv = IN.uv;
-    OUT.normal = IN.normal;
+    OUT.normal = normalize(mul(normalize(IN.normal), (float3x3)ModelViewProjectionCB.MVP));
 
     return OUT;
 }
