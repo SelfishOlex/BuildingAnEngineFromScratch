@@ -187,15 +187,16 @@ namespace Olex
         samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
         // A single 32-bit constant root parameter that is used by the vertex shader.
-        CD3DX12_ROOT_PARAMETER1 rootParameters[4] = {};
+        CD3DX12_ROOT_PARAMETER1 rootParameters[3] = {};
         rootParameters[0].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
 
+        // shader resource view, for texture sampling
         CD3DX12_DESCRIPTOR_RANGE1 descriptorRange = {};
         descriptorRange.Init( D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, 0 );
         rootParameters[1].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL );
 
-        rootParameters[2].InitAsConstants( sizeof( DirectX::XMFLOAT3A ) / 4, 1, 0, D3D12_SHADER_VISIBILITY_VERTEX );
-        rootParameters[3].InitAsConstants( sizeof( float ) / 4, 2, 0, D3D12_SHADER_VISIBILITY_VERTEX );
+        // light info
+        rootParameters[2].InitAsConstants( sizeof( LightInfo ) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL );
 
         CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDescription;
         rootSignatureDescription.Init_1_1( _countof( rootParameters ), rootParameters, 1, &samplerDesc, rootSignatureFlags );
@@ -337,6 +338,13 @@ namespace Olex
         const float aspectRatio = static_cast<float>( GetClientWidth() ) / static_cast<float>( GetClientHeight() );
         m_ProjectionMatrix = XMMatrixPerspectiveFovLH( XMConvertToRadians( m_FoV ), aspectRatio, 0.1f, 100.0f );
 
+        // update light information
+        m_lightInfo.m_eyePosition = {0, -10, 0}; // TODO remove duplication here
+        m_lightInfo.m_directionalLightCount = 1;
+        m_lightInfo.m_directionLights[0].m_color = {1, 0, 0};
+        m_lightInfo.m_directionLights[0].m_intensity = 1000.f;
+        m_lightInfo.m_directionLights[0].m_directionalLight = {0, -1, -1};
+
         ++m_frameCount;
     }
 
@@ -378,6 +386,9 @@ namespace Olex
         XMMATRIX mvpMatrix = XMMatrixMultiply( m_ModelMatrix, m_ViewMatrix );
         mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
         commandList->SetGraphicsRoot32BitConstants( 0, sizeof( XMMATRIX ) / 4, &mvpMatrix, 0 );
+
+        // Update light info
+        commandList->SetGraphicsRoot32BitConstants( 2, sizeof( LightInfo ) / 4, &m_lightInfo, 0 );
 
         // IA = Input Assembler
         commandList->IASetPrimitiveTopology( D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST );

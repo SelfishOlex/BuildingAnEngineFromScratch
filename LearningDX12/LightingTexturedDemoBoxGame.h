@@ -13,6 +13,21 @@ namespace Olex
 {
     class DX12App;
 
+    struct LightInfo
+    {
+        struct DirectionalLight
+        {
+            DirectX::XMFLOAT3 m_color;
+            DirectX::XMFLOAT3 m_directionalLight;
+            float m_intensity;
+        };
+
+        int m_directionalLightCount = 1;
+        DirectionalLight m_directionLights[4];
+
+        DirectX::XMFLOAT3 m_eyePosition;
+    };
+
     class LightingTexturedDemoBoxGame final
         : public BaseGameInterface
     {
@@ -70,8 +85,7 @@ namespace Olex
         DirectX::XMMATRIX m_ViewMatrix;
         DirectX::XMMATRIX m_ProjectionMatrix;
 
-        DirectX::XMFLOAT3A m_DirectionalLight = {0.f, 1.f, -1.f};
-        float m_DirectionalLightIntensity = 100.f;
+        LightInfo m_lightInfo;
 
         bool m_ContentLoaded;
 
