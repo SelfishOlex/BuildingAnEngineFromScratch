@@ -1,7 +1,8 @@
 struct PixelShaderInput
 {
-    float2 uv     : TEXCOORD;
-    float3 normal : NORMAL;
+    float2 uv       : TEXCOORD;
+    float3 normal   : NORMAL;
+    float4 position : SV_Position;
 };
 
 Texture2D<float4> simpleTexture : register(t0);
@@ -27,8 +28,16 @@ float4 main( PixelShaderInput IN ) : SV_Target
     float ndotl = max(dot(lightVec, IN.normal), 0.0f);
     float3 lightStrength = Lights.m_directionalLight.m_intensity * ndotl * Lights.m_directionalLight.m_color;
 
+    float distanceFromEye = distance(IN.position, float4(Lights.m_eyePosition, 1));
+    float fogEnd = 1000;
+    float fogStart = 590;
+
+    float fogFactor = clamp((fogEnd - distanceFromEye) / (fogEnd - fogStart), 0, 1);
+
     //return simpleTexture.Sample(textureSampler, IN.uv) * ndotl;
-    return simpleTexture.Sample(textureSampler, IN.uv) + float4(Lights.m_directionalLight.m_color * ndotl /** Lights.m_directionalLight.m_intensity*/, 1);
+    float4 color = (simpleTexture.Sample(textureSampler, IN.uv) + float4(Lights.m_directionalLight.m_color * ndotl /** Lights.m_directionalLight.m_intensity*/, 1)) /** fogFactor*/;
+    color.w = 1;
+    return color;
     /*return simpleTexture.Sample(textureSampler, IN.uv) + float4(lightStrength, 1);*/
     //return float4(Lights.m_directionalLight.m_color, 1);
     //return float4(Lights.m_eyePosition), 1);

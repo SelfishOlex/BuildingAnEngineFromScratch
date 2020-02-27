@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 #include <d3d12.h>
 #include <DirectXMath.h>
 #include <string>
@@ -13,25 +14,11 @@ namespace Olex
 {
     class DX12App;
 
-    class LightingTexturedDemoBoxGame final
+    class MultipleObjectsDemo final
         : public BaseGameInterface
     {
     public:
-        LightingTexturedDemoBoxGame( DX12App& app );
-
-        struct LightInfo
-        {
-            struct DirectionalLight
-            {
-                DirectX::XMFLOAT3 m_color = { 0, 1, 0 };
-                DirectX::XMFLOAT3 m_direction = { 0, -1, -1 };
-                float m_intensity = 1.f;
-            };
-
-            DirectionalLight m_directionLight;
-
-            DirectX::XMFLOAT3 m_eyePosition = { 0, 0, 0 };
-        };
+        MultipleObjectsDemo( DX12App& app );
 
         void LoadResources() override;
         void ResizeDepthBuffer( int width, int height );
@@ -84,7 +71,26 @@ namespace Olex
         DirectX::XMMATRIX m_ViewMatrix;
         DirectX::XMMATRIX m_ProjectionMatrix;
 
+        struct LightInfo
+        {
+            struct DirectionalLight
+            {
+                DirectX::XMFLOAT3 m_color = { 0, 1, 0 };
+                DirectX::XMFLOAT3 m_direction = { 0, 0, 1 };
+                float m_intensity = 1.f;
+            };
+
+            DirectionalLight m_directionLight;
+
+            DirectX::XMFLOAT3 m_eyePosition = { 0, 0, 0 };
+        };
+
         LightInfo m_lightInfo;
+
+        struct ObjectInfo
+        {
+            DirectX::XMMATRIX m_ProjectionMatrix;
+        };
 
         bool m_ContentLoaded;
 

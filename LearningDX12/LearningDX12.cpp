@@ -13,14 +13,15 @@
 #include <shellapi.h>
 
 #include "LightingTexturedDemoBoxGame.h"
+#include "MultipleObjectsDemo.h"
 #include "TexturedDemoBoxGame.h"
 
-#define MAX_LOADSTRING 100
+constexpr auto MaxLoadString = 100;
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+WCHAR szTitle[MaxLoadString];                  // The title bar text
+WCHAR szWindowClass[MaxLoadString];            // the main window class name
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass( HINSTANCE hInstance );
@@ -45,8 +46,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     SetThreadDpiAwarenessContext( DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 );
 
     // Initialize global strings
-    LoadStringW( hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING );
-    LoadStringW( hInstance, IDC_LEARNINGDX12, szWindowClass, MAX_LOADSTRING );
+    LoadStringW( hInstance, IDS_APP_TITLE, szTitle, MaxLoadString );
+    LoadStringW( hInstance, IDC_LEARNINGDX12, szWindowClass, MaxLoadString );
     MyRegisterClass( hInstance );
 
     // Perform application initialization:
@@ -65,7 +66,7 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
 
         SetWindowText(window, L"Use '-demo N' to specify demo option");
 
-        for ( size_t i = 0; i < argc; ++i )
+        for ( int i = 0; i < argc; ++i )
         {
             if ( ::wcscmp( argv[i], L"-demo" ) == 0 || ::wcscmp( argv[i], L"--demo" ) == 0 )
             {
@@ -73,19 +74,24 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
                 switch(choice)
                 {
                 case 0:
-                    SetWindowText(window, L"Demo: None");
-                    break;
                 case 1:
+                    SetWindowText(window, L"Demo: Initialization of DX12");
+                    break;
+                case 2:
                     SetWindowText(window, L"Demo: Non-texture Cube");
                     globalApplication->SetGame( std::make_unique<Olex::DemoBoxGame>( *globalApplication ) );
                     break;
-                case 2:
+                case 3:
                     SetWindowText(window, L"Demo: Textured Cube");
                     globalApplication->SetGame( std::make_unique<Olex::TexturedDemoBoxGame>( *globalApplication ) );
                     break;
-                case 3:
+                case 4:
                     SetWindowText(window, L"Demo: Textured Cube with Lighting");
                     globalApplication->SetGame( std::make_unique<Olex::LightingTexturedDemoBoxGame>( *globalApplication ) );
+                    break;
+                case 5:
+                    SetWindowText(window, L"Demo: Multiple Objects");
+                    globalApplication->SetGame( std::make_unique<Olex::MultipleObjectsDemo>( *globalApplication ) );
                     break;
                 default:
                     SetWindowText(window, L"No Demo");

@@ -164,6 +164,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="LearningDX12.h" />
     <ClInclude Include="LightingTexturedDemoBoxGame.h" />
+    <ClInclude Include="MultipleObjectsDemo.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TexturedDemoBoxGame.h" />
@@ -176,6 +177,7 @@
     <ClCompile Include="FbxLoader.cpp" />
     <ClCompile Include="LearningDX12.cpp" />
     <ClCompile Include="LightingTexturedDemoBoxGame.cpp" />
+    <ClCompile Include="MultipleObjectsDemo.cpp" />
     <ClCompile Include="TexturedDemoBoxGame.cpp" />
   </ItemGroup>
   <ItemGroup>

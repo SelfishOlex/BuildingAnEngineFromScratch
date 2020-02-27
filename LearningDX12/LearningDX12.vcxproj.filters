@@ -31,6 +31,9 @@
     <Filter Include="FBX">
       <UniqueIdentifier>{007925c2-fb70-44bc-bd7a-eff74d9fdb61}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Demos\Demo_05_MultipleObjects">
+      <UniqueIdentifier>{5bb5ad08-85a3-4992-abae-3dbc4b62c0c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -69,6 +72,9 @@
     <ClInclude Include="FbxLoader.h">
       <Filter>FBX</Filter>
     </ClInclude>
+    <ClInclude Include="MultipleObjectsDemo.h">
+      <Filter>Demos\Demo_05_MultipleObjects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LearningDX12.cpp">
@@ -94,6 +100,9 @@
     </ClCompile>
     <ClCompile Include="FbxLoader.cpp">
       <Filter>FBX</Filter>
+    </ClCompile>
+    <ClCompile Include="MultipleObjectsDemo.cpp">
+      <Filter>Demos\Demo_05_MultipleObjects</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
