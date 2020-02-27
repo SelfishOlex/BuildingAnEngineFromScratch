@@ -29,13 +29,13 @@ float4 main( PixelShaderInput IN ) : SV_Target
     float3 lightStrength = Lights.m_directionalLight.m_intensity * ndotl * Lights.m_directionalLight.m_color;
 
     float distanceFromEye = distance(IN.position, float4(Lights.m_eyePosition, 1));
-    float fogEnd = 1000;
-    float fogStart = 590;
+    float fogEnd = 2000;
+    float fogStart = 190;
 
-    float fogFactor = clamp((fogEnd - distanceFromEye) / (fogEnd - fogStart), 0, 1);
+    float fogFactor = clamp((fogEnd - distanceFromEye) / (fogEnd - fogStart), 0.1, 1);
 
     //return simpleTexture.Sample(textureSampler, IN.uv) * ndotl;
-    float4 color = (simpleTexture.Sample(textureSampler, IN.uv) + float4(Lights.m_directionalLight.m_color * ndotl /** Lights.m_directionalLight.m_intensity*/, 1)) /** fogFactor*/;
+    float4 color = (simpleTexture.Sample(textureSampler, IN.uv) + float4(Lights.m_directionalLight.m_color * ndotl /** Lights.m_directionalLight.m_intensity*/, 1)) * fogFactor;
     color.w = 1;
     return color;
     /*return simpleTexture.Sample(textureSampler, IN.uv) + float4(lightStrength, 1);*/

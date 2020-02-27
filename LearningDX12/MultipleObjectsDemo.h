@@ -75,7 +75,7 @@ namespace Olex
         {
             struct DirectionalLight
             {
-                DirectX::XMFLOAT3 m_color = { 0, 1, 0 };
+                DirectX::XMFLOAT3 m_color = { 1, 1, 1 };
                 DirectX::XMFLOAT3 m_direction = { 0, 0, 1 };
                 float m_intensity = 1.f;
             };

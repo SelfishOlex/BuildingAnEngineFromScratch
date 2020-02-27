@@ -343,9 +343,9 @@ namespace Olex
 
         // update light information
         m_lightInfo.m_eyePosition = { 0, -10, 0 }; // TODO remove duplication here
-        m_lightInfo.m_directionLight.m_color = { 1, 0, 0 };
+        m_lightInfo.m_directionLight.m_color = { 1, 1, 1 };
         m_lightInfo.m_directionLight.m_intensity = 1.f;
-        m_lightInfo.m_directionLight.m_direction = { -1, 1, 0 };
+        m_lightInfo.m_directionLight.m_direction = { 0, 0, -1 };
 
         ++m_frameCount;
     }
