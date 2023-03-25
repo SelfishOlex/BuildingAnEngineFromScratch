@@ -37,6 +37,12 @@
     <Filter Include="Flecs">
       <UniqueIdentifier>{fb05e1f0-528b-406a-a6cf-3706a7f068ca}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GameWorld">
+      <UniqueIdentifier>{124c117d-6385-42eb-bb6d-cbf61b97c275}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PhysicsWorld">
+      <UniqueIdentifier>{535ea16e-9f23-445d-8e54-8ea14e403979}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -82,7 +88,10 @@
       <Filter>Flecs</Filter>
     </ClInclude>
     <ClInclude Include="GameWorld.h">
-      <Filter>Header Files</Filter>
+      <Filter>GameWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicsWorld\PhysxWorld.h">
+      <Filter>PhysicsWorld</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -117,7 +126,10 @@
       <Filter>Flecs</Filter>
     </ClCompile>
     <ClCompile Include="GameWorld.cpp">
-      <Filter>Header Files</Filter>
+      <Filter>GameWorld</Filter>
+    </ClCompile>
+    <ClCompile Include="PhysicsWorld\PhysxWorld.cpp">
+      <Filter>PhysicsWorld</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

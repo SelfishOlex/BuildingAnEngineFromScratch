@@ -11,6 +11,7 @@
 #include "CommandQueue.h"
 #include "FbxLoader.h"
 #include "GameWorld.h"
+#include "PhysicsWorld/PhysxWorld.h"
 
 namespace Olex
 {
@@ -47,6 +48,8 @@ namespace Olex
          */
 
         GameWorld m_gameWorld;
+
+        PhysxWorld m_physx;
 
         /*
          * DirectX 12 Stuff

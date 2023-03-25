@@ -30,6 +30,7 @@ namespace Olex
         m_Height = windowRect.bottom - windowRect.top;
         m_Viewport = CD3DX12_VIEWPORT( 0.0f, 0.0f, static_cast<float>( m_Width ), static_cast<float>( m_Height ) );
 
+        m_physx.Initialize();
         m_gameWorld.Initialize();
     }
 
