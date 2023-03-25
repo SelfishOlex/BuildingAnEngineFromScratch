@@ -12,9 +12,9 @@
 #include "DX12App.h"
 #include <shellapi.h>
 
-#include "LightingTexturedDemoBoxGame.h"
-#include "MultipleObjectsDemo.h"
-#include "TexturedDemoBoxGame.h"
+#include "Source/Renderer/LightingTexturedDemoBoxGame.h"
+#include "Source/Renderer/MultipleObjectsDemo.h"
+#include "Source/Renderer/TexturedDemoBoxGame.h"
 
 constexpr auto MaxLoadString = 100;
 
@@ -64,42 +64,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         int argc;
         wchar_t** argv = ::CommandLineToArgvW( ::GetCommandLineW(), &argc );
 
-        SetWindowText(window, L"Use '-demo N' to specify demo option");
-
-        for ( int i = 0; i < argc; ++i )
-        {
-            if ( ::wcscmp( argv[i], L"-demo" ) == 0 || ::wcscmp( argv[i], L"--demo" ) == 0 )
-            {
-                const unsigned long choice = ::wcstoul(argv[++i], nullptr, 10);
-                switch(choice)
-                {
-                case 0:
-                case 1:
-                    SetWindowText(window, L"Demo: Initialization of DX12");
-                    break;
-                case 2:
-                    SetWindowText(window, L"Demo: Non-texture Cube");
-                    globalApplication->SetGame( std::make_unique<Olex::DemoBoxGame>( *globalApplication ) );
-                    break;
-                case 3:
-                    SetWindowText(window, L"Demo: Textured Cube");
-                    globalApplication->SetGame( std::make_unique<Olex::TexturedDemoBoxGame>( *globalApplication ) );
-                    break;
-                case 4:
-                    SetWindowText(window, L"Demo: Textured Cube with Lighting");
-                    globalApplication->SetGame( std::make_unique<Olex::LightingTexturedDemoBoxGame>( *globalApplication ) );
-                    break;
-                case 5:
-                    SetWindowText(window, L"Demo: Multiple Objects");
-                    globalApplication->SetGame( std::make_unique<Olex::MultipleObjectsDemo>( *globalApplication ) );
-                    break;
-                default:
-                    SetWindowText(window, L"No Demo");
-                    break;
-                }
-                break;
-            }
-        }
+        SetWindowText(window, L"Demo: Multiple Objects");
+        globalApplication->SetGame( std::make_unique<Olex::MultipleObjectsDemo>( *globalApplication ) );
 
         // Free memory allocated by CommandLineToArgvW
         ::LocalFree( argv );
@@ -137,13 +103,15 @@ ATOM MyRegisterClass( HINSTANCE hInstance )
     wcex.cbWndExtra = 0;
     wcex.hInstance = hInstance;
     wcex.hIcon = LoadIcon( hInstance, MAKEINTRESOURCE( IDI_LEARNINGDX12 ) );
-    wcex.hCursor = LoadCursor( nullptr, IDC_ARROW );
+    wcex.hCursor = nullptr; // LoadCursor( nullptr, IDC_ARROW );
     wcex.hbrBackground = reinterpret_cast<HBRUSH>( ( COLOR_WINDOW + 1 ) );
     wcex.lpszMenuName = MAKEINTRESOURCEW( IDC_LEARNINGDX12 );
     wcex.lpszClassName = szWindowClass;
     wcex.hIconSm = LoadIcon( wcex.hInstance, MAKEINTRESOURCE( IDI_SMALL ) );
 
-    return RegisterClassExW( &wcex );
+    auto result = RegisterClassExW( &wcex );
+    auto error = GetLastError();
+    return result;
 }
 
 //
@@ -162,9 +130,10 @@ HWND InitInstance( HINSTANCE hInstance, int nCmdShow )
 
     HWND hWnd = CreateWindowW( szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr );
-
+    
     if ( !hWnd )
     {
+        auto error = GetLastError();
         return hWnd;
     }
 
