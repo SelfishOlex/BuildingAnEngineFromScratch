@@ -1,2 +1,9 @@
 LearningDX12/.vs/
 LearningDX12/x64/
+LearningDX12/build/PixelShader.cso
+LearningDX12/build/PixelShader_Textured.cso
+LearningDX12/build/PixelShader_Textured_Light.cso
+LearningDX12/build/texture.jpg
+LearningDX12/build/VertexShader.cso
+LearningDX12/build/VertexShader_Textured.cso
+LearningDX12/build/VertexShader_Textured_Light.cso

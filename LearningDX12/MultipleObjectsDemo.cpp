@@ -189,7 +189,7 @@ namespace Olex
         samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
         // A single 32-bit constant root parameter that is used by the vertex shader.
-        CD3DX12_ROOT_PARAMETER1 rootParameters[4] = {};
+        CD3DX12_ROOT_PARAMETER1 rootParameters[3] = {};
         rootParameters[0].InitAsConstants( sizeof( ObjectInfo ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
 
         // shader resource view, for texture sampling
@@ -227,26 +227,25 @@ namespace Olex
     {
         if ( m_ContentLoaded )
         {
-            // Flush any GPU commands that might be referencing the depth buffer.
-            //m_app.Flush();
-            m_app.GetCommandQueue().WaitForFenceValue( m_lastFenceValue );
-
             width = std::max( 1, width );
             height = std::max( 1, height );
 
-            auto device = m_app.GetDevice();
+            Microsoft::WRL::ComPtr<ID3D12Device2> device = m_app.GetDevice();
 
             // Resize screen dependent resources.
             // Create a depth buffer.
             D3D12_CLEAR_VALUE optimizedClearValue = {};
             optimizedClearValue.Format = DXGI_FORMAT_D32_FLOAT;
             optimizedClearValue.DepthStencil = { 1.0f, 0 };
+            
+            CD3DX12_HEAP_PROPERTIES heapProperties( D3D12_HEAP_TYPE_DEFAULT );
+            const auto tex2D = CD3DX12_RESOURCE_DESC::Tex2D( DXGI_FORMAT_D32_FLOAT, width, height,
+                    1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL );
 
             ThrowIfFailed( device->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES( D3D12_HEAP_TYPE_DEFAULT ),
+                &heapProperties,
                 D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Tex2D( DXGI_FORMAT_D32_FLOAT, width, height,
-                    1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL ),
+                &tex2D,
                 D3D12_RESOURCE_STATE_DEPTH_WRITE,
                 &optimizedClearValue,
                 IID_PPV_ARGS( &m_DepthBuffer )
@@ -260,7 +259,10 @@ namespace Olex
             dsv.Texture2D.MipSlice = 0;
 
             device->CreateDepthStencilView( m_DepthBuffer.Get(), &dsv,
-                m_DSVHeap->GetCPUDescriptorHandleForHeapStart() );
+                m_DSVHeap->GetCPUDescriptorHandleForHeapStart() );            
+            
+            m_Viewport = CD3DX12_VIEWPORT( 0.0f, 0.0f,
+                static_cast<float>( width ), static_cast<float>( height ) );
         }
     }
 
@@ -268,9 +270,6 @@ namespace Olex
     {
         if ( args.Width != GetClientWidth() || args.Height != GetClientHeight() )
         {
-            m_Viewport = CD3DX12_VIEWPORT( 0.0f, 0.0f,
-                static_cast<float>( args.Width ), static_cast<float>( args.Height ) );
-
             ResizeDepthBuffer( args.Width, args.Height );
         }
     }
@@ -311,7 +310,7 @@ namespace Olex
 
         totalTime += args.m_elapsedTime;
         frameCount++;
-
+        \
         if ( totalTime > 1.0 )
         {
             const double fps = frameCount / totalTime;
@@ -361,8 +360,8 @@ namespace Olex
         Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList2> commandList = m_app.GetCommandQueue().CreateCommandList();
 
         Microsoft::WRL::ComPtr<ID3D12Resource> backBuffer = m_app.GetCurrentBackBuffer();
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_app.GetCurrentRenderTargetView();
-        D3D12_CPU_DESCRIPTOR_HANDLE dsv = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
+        D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView = m_app.GetCurrentRenderTargetView();
+        D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = m_DSVHeap->GetCPUDescriptorHandleForHeapStart();
 
         // Clear the render targets.
         {
@@ -371,8 +370,8 @@ namespace Olex
 
             FLOAT clearColor[] = { 0.4f, 0.6f, 0.9f, 1.0f };
 
-            ClearRTV( commandList, rtv, clearColor );
-            ClearDepth( commandList, dsv );
+            ClearRTV( commandList, renderTargetView, clearColor );
+            ClearDepth( commandList, depthStencilView );
         }
 
         commandList->SetGraphicsRootSignature( m_RootSignature.Get() );
@@ -396,12 +395,12 @@ namespace Olex
         commandList->RSSetScissorRects( 1, &m_ScissorRect );
 
         // OM = Output Merger
-        commandList->OMSetRenderTargets( 1, &rtv, FALSE, &dsv );
+        commandList->OMSetRenderTargets( 1, &renderTargetView, FALSE, &depthStencilView );
 
-        for ( int i = 0; i < 20; ++i )
+        for ( int i = 0; i < 2000; ++i )
         {
             // Update the MVP matrix
-            const XMMATRIX position = XMMatrixTranslation( -80 + float( i ) * 40.f, float( i * i ) * 1.2f, -4 + float( i ) );
+            const XMMATRIX position = XMMatrixTranslation( -80 + float( i ) * 10.f, float( i*i ) * 0.1f, -4 + float( i ) );
             const XMMATRIX thisModelMatrix = XMMatrixMultiply( m_ModelMatrix, position );
 
             XMMATRIX mvpMatrix = XMMatrixMultiply( thisModelMatrix, m_ViewMatrix );

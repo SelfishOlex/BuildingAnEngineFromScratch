@@ -2,6 +2,7 @@
 #pragma once
 #include <d3d12.h>
 #include <DirectXMath.h>
+#include <memory>
 #include <string>
 #include <wrl/client.h>
 

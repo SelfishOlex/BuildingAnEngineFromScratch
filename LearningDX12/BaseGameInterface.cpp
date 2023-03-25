@@ -49,22 +49,29 @@ namespace Olex
 
         const size_t bufferSize = numElements * elementSize;
 
+        const CD3DX12_HEAP_PROPERTIES heapPropertiesDefault( D3D12_HEAP_TYPE_DEFAULT );
+        const CD3DX12_RESOURCE_DESC bufferDefault = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags);
+
         // Create a committed resource for the GPU resource in a default heap.
         ThrowIfFailed( device->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES( D3D12_HEAP_TYPE_DEFAULT ),
+            &heapPropertiesDefault,
             D3D12_HEAP_FLAG_NONE,
-            &CD3DX12_RESOURCE_DESC::Buffer( bufferSize, flags ),
-            D3D12_RESOURCE_STATE_COPY_DEST,
+            &bufferDefault,
+            //D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_COMMON,
             nullptr,
             IID_PPV_ARGS( pDestinationResource ) ) );
 
         // Create an committed resource for the upload.
         if ( bufferData )
         {
+            CD3DX12_HEAP_PROPERTIES heapPropertiesUpload( D3D12_HEAP_TYPE_UPLOAD );
+            const auto bufferUpload = CD3DX12_RESOURCE_DESC::Buffer( bufferSize );
+
             ThrowIfFailed( device->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES( D3D12_HEAP_TYPE_UPLOAD ),
+                &heapPropertiesUpload,
                 D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer( bufferSize ),
+                &bufferUpload,
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
                 IID_PPV_ARGS( pIntermediateResource ) ) );

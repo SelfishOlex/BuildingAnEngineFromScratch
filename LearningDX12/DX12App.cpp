@@ -521,6 +521,16 @@ namespace Olex
             m_CurrentBackBufferIndex = m_SwapChain->GetCurrentBackBufferIndex();
 
             UpdateRenderTargetViews( m_SwapChain, m_RTVDescriptorHeap );
+
+            
+            if ( m_currentGame )
+            {
+                ResizeEventArgs args;
+                args.Width = width;
+                args.Height = height;
+
+                m_currentGame->Resize( args );
+            }
         }
     }
 
