@@ -84,8 +84,6 @@ namespace Olex
 
         CommandQueue& GetCommandQueue() { return *m_CommandQueue; }
 
-    private:
-
         std::unique_ptr<BaseGameInterface> m_currentGame;
 
         // The number of swap chain back buffers.

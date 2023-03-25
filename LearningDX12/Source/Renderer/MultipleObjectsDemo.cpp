@@ -2,17 +2,14 @@
 
 #include <d3d12.h>
 #include <d3dcompiler.h>
-#include <wrl/client.h>
 #include <filesystem>
-#include <WICTextureLoader.h>
-#include <ResourceUploadBatch.h>
-
-#include "d3dx12.h"
-#include "DX12App.h"
-#include "wrl/wrappers/corewrappers.h"
 #include <pix.h>
 #include <backends/imgui_impl_win32.h>
 #include <ImGui/backends/imgui_impl_dx12.h>
+#include <wrl/client.h>
+#include "d3dx12.h"
+#include "DX12App.h"
+#include "wrl/wrappers/corewrappers.h"
 
 #include "FbxLoader.h"
 
@@ -37,8 +34,16 @@ namespace Olex
         m_gameWorld.CreateWorld();
     }
 
+    MultipleObjectsDemo::Texture MultipleObjectsDemo::LoadTexture(const wchar_t* filename)
+    {
+        return {};
+    }
+
     void MultipleObjectsDemo::LoadResources()
     {
+        LoadPipeline();
+        LoadAssets();
+
         Microsoft::WRL::ComPtr<ID3D12Device2> device = m_app.GetDevice();
 
         CreateRootSignature();
@@ -66,34 +71,106 @@ namespace Olex
             // error
 #endif
 
-            Microsoft::WRL::ComPtr<ID3D12Resource> texture;
+        //////// Loading the texture ////////////////
 
-        using namespace std::filesystem;
-        DirectX::ResourceUploadBatch uploadBatch(m_app.GetDevice().Get());
-        uploadBatch.Begin();
+        ComPtr<ID3D12GraphicsCommandList> commandList;
+        m_app.CreateCommandList()
+        // Create the command list.
+        ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, 
+             m_app m_commandAllocator.Get(), m_pipelineState.Get(), IID_PPV_ARGS(&commandList)));
 
-        ThrowIfFailed(DirectX::CreateWICTextureFromFile(
-            m_app.GetDevice().Get(),
-            uploadBatch,
-            L"texture.jpg",
-            &m_texture,
-            true));
 
-        const std::future<void> uploadTask = uploadBatch.End(m_app.GetCommandQueue().GetD3D12CommandQueue().Get());
-        uploadTask.wait();
+        // Note: ComPtr's are CPU objects but this resource needs to stay in scope until
+        // the command list that references it has finished executing on the GPU.
+        // We will flush the GPU at the end of this method to ensure the resource is not
+        // prematurely destroyed.
+        ComPtr<ID3D12Resource> textureUploadHeap;
 
+        // Create the texture.
         {
-            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING; // no re-ordering of RGBA components
-            srvDesc.Format = /*DXGI_FORMAT_R8G8B8A8_UNORM*/ m_texture->GetDesc().Format;
-            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // The resource is a 2D texture.
-            srvDesc.Texture2D.MostDetailedMip = 0; // so the first in memory is the largest mipmap level
-            srvDesc.Texture2D.MipLevels = 1;
-            srvDesc.Texture2D.ResourceMinLODClamp = 0.0f; // A value to clamp sample LOD values to.
+            auto texture = LoadTexture(L"texture.bmp");
 
-            device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_SrvHeap->GetCPUDescriptorHandleForHeapStart());
+            // Describe and create a Texture2D.
+            D3D12_RESOURCE_DESC textureDesc = {};
+            textureDesc.MipLevels = 1;
+            textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            textureDesc.Width = texture.width;
+            textureDesc.Height = texture.height;
+            textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+            textureDesc.DepthOrArraySize = 1;
+            textureDesc.SampleDesc.Count = 1;
+            textureDesc.SampleDesc.Quality = 0;
+            textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+            const CD3DX12_HEAP_PROPERTIES heapPropertiesDefault(D3D12_HEAP_TYPE_DEFAULT);
+
+            ThrowIfFailed(device->CreateCommittedResource(
+                &heapPropertiesDefault,
+                D3D12_HEAP_FLAG_NONE,
+                &textureDesc,
+                D3D12_RESOURCE_STATE_COPY_DEST,
+                nullptr,
+                IID_PPV_ARGS(&m_texture)));
+
+            const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_texture.Get(), 0, 1);
+
+            const CD3DX12_HEAP_PROPERTIES heapPropertiesUpload(D3D12_HEAP_TYPE_UPLOAD);
+            const auto bufferUpload = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+
+            // Create the GPU upload buffer.
+            ThrowIfFailed(device->CreateCommittedResource(
+                &heapPropertiesUpload,
+                D3D12_HEAP_FLAG_NONE,
+                &bufferUpload,
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr,
+                IID_PPV_ARGS(&textureUploadHeap)));
+
+            // Copy data to the intermediate upload heap and then schedule a copy 
+            // from the upload heap to the Texture2D.
+
+            D3D12_SUBRESOURCE_DATA textureData = {};
+            textureData.pData = &texture.data.get()[0];
+            textureData.RowPitch = texture.width * texture.pixelSize;
+            textureData.SlicePitch = textureData.RowPitch * texture.height;
+
+            UpdateSubresources(commandList.Get(), m_texture.Get(), textureUploadHeap.Get(), 0, 0, 1, &textureData);
+
+            commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+
+            // Describe and create a SRV for the texture.
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srvDesc.Format = textureDesc.Format;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels = 1;
+            device->CreateShaderResourceView(m_texture.Get(), &srvDesc,  m_SrvHeap->GetCPUDescriptorHandleForHeapStart());
+        }
+        
+        // Close the command list and execute it to begin the initial GPU setup.
+        ThrowIfFailed(commandList->Close());
+        ID3D12CommandList* ppCommandLists[] = { commandList.Get() };
+        m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+        // Create synchronization objects and wait until assets have been uploaded to the GPU.
+        {
+            ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+            m_fenceValue = 1;
+
+            // Create an event handle to use for frame synchronization.
+            m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            if (m_fenceEvent == nullptr)
+            {
+                ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+            }
+
+            // Wait for the command list to execute; we are reusing the same command 
+            // list in our main loop but for now, we just want to wait for setup to 
+            // complete before continuing.
+            WaitForPreviousFrame();
         }
 
+        ///////// Shaders /////////////////
 
         // Create the vertex input layout
         D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
@@ -235,6 +312,22 @@ namespace Olex
             rootSignatureBlob->GetBufferSize(), IID_PPV_ARGS(&m_RootSignature)));
     }
 
+    void MultipleObjectsDemo::LoadPipeline()
+    {
+    }
+
+    void MultipleObjectsDemo::LoadAssets()
+    {
+    }
+
+    void MultipleObjectsDemo::PopulateCommandList()
+    {
+    }
+
+    void MultipleObjectsDemo::WaitForPreviousFrame()
+    {
+    }
+
     void MultipleObjectsDemo::ResizeDepthBuffer(int width, int height)
     {
         if (m_ContentLoaded)
@@ -284,32 +377,6 @@ namespace Olex
         {
             ResizeDepthBuffer(args.Width, args.Height);
         }
-    }
-
-
-    Microsoft::WRL::ComPtr<ID3D12Resource> MultipleObjectsDemo::LoadTextureFromFile(const wchar_t* fileName)
-    {
-        Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
-
-        using namespace std::filesystem;
-        const path texturePath(fileName);
-        if (exists(texturePath) == true)
-        {
-            DirectX::ResourceUploadBatch uploadBatch(m_app.GetDevice().Get());
-            uploadBatch.Begin();
-
-            ThrowIfFailed(DirectX::CreateWICTextureFromFile(
-                m_app.GetDevice().Get(),
-                uploadBatch,
-                fileName,
-                textureResource.ReleaseAndGetAddressOf(),
-                false));
-
-            const std::future<void> uploadTask = uploadBatch.End(m_app.GetCommandQueue().GetD3D12CommandQueue().Get());
-            uploadTask.wait();
-        }
-
-        return textureResource;
     }
 
     void MultipleObjectsDemo::UnloadResources()

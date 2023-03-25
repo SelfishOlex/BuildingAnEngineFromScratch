@@ -130,5 +130,4 @@ endforeach(FILE)
 
 add_dependencies(${PROJECT_NAME} shaders)
 
-set_target_properties(DirectXTK12 PROPERTIES FOLDER "3rdparty")
 set_target_properties(shaders PROPERTIES FOLDER "Selfish")

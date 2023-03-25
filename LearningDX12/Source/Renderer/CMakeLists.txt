@@ -1,6 +1,4 @@
 
-add_subdirectory(DirectXTK12-main)
-
 add_library(Renderer
     BaseGameInterface.cpp
     BaseGameInterface.h
@@ -30,7 +28,6 @@ target_compile_definitions(Renderer PUBLIC
 
 
 target_link_libraries(Renderer PUBLIC 
-    DirectXTK12
     Fbx
     Flecs
     Physics    
