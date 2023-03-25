@@ -40,3 +40,5 @@ target_link_libraries(Renderer PUBLIC
     Flecs
     Physics    
 )
+
+set_target_properties(Renderer PROPERTIES FOLDER "Selfish")

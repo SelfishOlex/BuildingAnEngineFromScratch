@@ -19,3 +19,5 @@ target_include_directories(Fbx
 target_compile_definitions(Fbx PUBLIC
     FBXSDK_SHARED
 )
+
+set_target_properties(Fbx PROPERTIES FOLDER "Selfish")

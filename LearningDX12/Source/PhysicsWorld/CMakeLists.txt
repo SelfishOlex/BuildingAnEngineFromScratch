@@ -13,3 +13,6 @@ target_include_directories(Physics
     INTERFACE 
         "${PROJECT_SOURCE_DIR}/3rdparty/PhysX5/include"
 )
+
+
+set_target_properties(Physics PROPERTIES FOLDER "Selfish")

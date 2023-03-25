@@ -18,3 +18,6 @@ target_include_directories(Flecs
     INTERFACE 
         "${PROJECT_SOURCE_DIR}/Source/Flecs"
 )
+
+
+set_target_properties(Flecs PROPERTIES FOLDER "Selfish")
