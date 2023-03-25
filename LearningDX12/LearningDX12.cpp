@@ -1,20 +1,16 @@
 // LearningDX12.cpp : Defines the entry point for the application.
 //
 
-#include "framework.h"
 #include "LearningDX12.h"
+#include "framework.h"
 
 #include <memory>
 
-
-
-#include "DemoBoxGame.h"
-#include "DX12App.h"
 #include <shellapi.h>
-
-#include "Source/Renderer/LightingTexturedDemoBoxGame.h"
+#include <backends/imgui_impl_dx12.h>
+#include <backends/imgui_impl_win32.h>
+#include "DX12App.h"
 #include "Source/Renderer/MultipleObjectsDemo.h"
-#include "Source/Renderer/TexturedDemoBoxGame.h"
 
 constexpr auto MaxLoadString = 100;
 
@@ -45,6 +41,8 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
     // be rendered in a DPI sensitive fashion.
     SetThreadDpiAwarenessContext( DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 );
 
+    ImGui_ImplWin32_EnableDpiAwareness();
+
     // Initialize global strings
     LoadStringW( hInstance, IDS_APP_TITLE, szTitle, MaxLoadString );
     LoadStringW( hInstance, IDC_LEARNINGDX12, szWindowClass, MaxLoadString );
@@ -59,7 +57,15 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    // Choose a demo here
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+
     {
         int argc;
         wchar_t** argv = ::CommandLineToArgvW( ::GetCommandLineW(), &argc );
@@ -70,6 +76,9 @@ int APIENTRY wWinMain( _In_ HINSTANCE hInstance,
         // Free memory allocated by CommandLineToArgvW
         ::LocalFree( argv );
     }
+        
+    // Setup Platform/Renderer backends
+    ImGui_ImplWin32_Init(window);
 
     MSG msg;
     // Main message loop:

@@ -17,6 +17,9 @@ add_executable(${PROJECT_NAME}
     LearningDX12.rc
 )
 
+# Disable exceptions - can't do this yet  due to DirectTK12, remove it first then I can disable exceptions
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
+
 add_subdirectory(Source)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 

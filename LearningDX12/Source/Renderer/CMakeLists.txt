@@ -7,22 +7,17 @@ add_library(Renderer
     CommandQueue.cpp
     CommandQueue.h
     d3dx12.h
-    DemoBoxGame.cpp
-    DemoBoxGame.h
     DX12App.cpp
     DX12App.h
-    LightingTexturedDemoBoxGame.cpp
-    LightingTexturedDemoBoxGame.h
     MultipleObjectsDemo.cpp
     MultipleObjectsDemo.h
     Resource.h
     targetver.h
-    TexturedDemoBoxGame.cpp
-    TexturedDemoBoxGame.h
 )
 
 target_include_directories(Renderer PUBLIC
     "${PROJECT_SOURCE_DIR}/Source"
+    "${PROJECT_SOURCE_DIR}/Source/ImGui"
     "${PROJECT_SOURCE_DIR}/Source/Renderer"
 )
 

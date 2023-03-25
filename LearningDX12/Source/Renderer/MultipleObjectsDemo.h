@@ -43,6 +43,8 @@ namespace Olex
 
     private:
 
+        void RenderImGui( RenderEventArgs args );
+
         /*
          * Entity Component System
          */
