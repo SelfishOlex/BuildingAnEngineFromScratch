@@ -10,6 +10,7 @@
 #include "BaseGameInterface.h"
 #include "CommandQueue.h"
 #include "FbxLoader.h"
+#include "GameWorld.h"
 
 namespace Olex
 {
@@ -40,6 +41,16 @@ namespace Olex
         void Resize( ResizeEventArgs args ) override;
 
     private:
+
+        /*
+         * Entity Component System
+         */
+
+        GameWorld m_gameWorld;
+
+        /*
+         * DirectX 12 Stuff
+         */
 
         Microsoft::WRL::ComPtr<ID3D12Resource> LoadTextureFromFile( const wchar_t* fileName );
 

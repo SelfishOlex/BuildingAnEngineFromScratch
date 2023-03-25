@@ -29,6 +29,8 @@ namespace Olex
         m_Width = windowRect.right - windowRect.left;
         m_Height = windowRect.bottom - windowRect.top;
         m_Viewport = CD3DX12_VIEWPORT( 0.0f, 0.0f, static_cast<float>( m_Width ), static_cast<float>( m_Height ) );
+
+        m_gameWorld.Initialize();
     }
 
     void MultipleObjectsDemo::LoadResources()
@@ -308,9 +310,11 @@ namespace Olex
         static uint64_t frameCount = 0;
         static double totalTime = 0.0;
 
+        m_gameWorld.Update(static_cast<float>(args.m_elapsedTime));
+
         totalTime += args.m_elapsedTime;
         frameCount++;
-        \
+        
         if ( totalTime > 1.0 )
         {
             const double fps = frameCount / totalTime;
@@ -397,23 +401,28 @@ namespace Olex
         // OM = Output Merger
         commandList->OMSetRenderTargets( 1, &renderTargetView, FALSE, &depthStencilView );
 
-        for ( int i = 0; i < 2000; ++i )
-        {
-            // Update the MVP matrix
-            const XMMATRIX position = XMMatrixTranslation( -80 + float( i ) * 10.f, float( i*i ) * 0.1f, -4 + float( i ) );
-            const XMMATRIX thisModelMatrix = XMMatrixMultiply( m_ModelMatrix, position );
+        // System declaration
+        const flecs::filter<const Position, const Mesh> filter = m_gameWorld.m_world.filter<const Position, const Mesh>("DrawFilter");
 
-            XMMATRIX mvpMatrix = XMMatrixMultiply( thisModelMatrix, m_ViewMatrix );
-            mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
+        filter.each([this, commandList](const Position& p, [[maybe_unused]] const Mesh& mesh) 
+            {
+                // Each is invoked for each entity
+                
+                // Update the MVP matrix
+                const XMMATRIX position = XMMatrixTranslation( p.x, p.y, p.z );
+                const XMMATRIX thisModelMatrix = XMMatrixMultiply( m_ModelMatrix, position );
 
-            ObjectInfo info{ mvpMatrix };
+                XMMATRIX mvpMatrix = XMMatrixMultiply( thisModelMatrix, m_ViewMatrix );
+                mvpMatrix = XMMatrixMultiply( mvpMatrix, m_ProjectionMatrix );
 
-            commandList->SetGraphicsRoot32BitConstants( 0, sizeof( ObjectInfo ) / 4, &info, 0 );
+                ObjectInfo info{ mvpMatrix };
 
-            // draw the model
-            static const UINT indexCount = static_cast<UINT>( m_fbxLoader->GetMeshes()[0].m_indices.size() * 3 );
-            commandList->DrawIndexedInstanced( indexCount, 1, 0, 0, 0 );
-        }
+                commandList->SetGraphicsRoot32BitConstants( 0, sizeof( ObjectInfo ) / 4, &info, 0 );
+
+                // draw the model
+                static const UINT indexCount = static_cast<UINT>( m_fbxLoader->GetMeshes()[0].m_indices.size() * 3 );
+                commandList->DrawIndexedInstanced( indexCount, 1, 0, 0, 0 );
+            });
 
         PIXEndEvent();
         PIXBeginEvent( PIX_COLOR_DEFAULT, L"Present" );
