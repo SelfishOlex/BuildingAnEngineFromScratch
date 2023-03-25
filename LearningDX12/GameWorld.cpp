@@ -4,7 +4,7 @@
 
 void GameWorld::Initialize()
 {
-    for (int i = 0; i < 2000; ++i)
+    for (int i = 0; i < 70; ++i)
     {
         char name[10];
         const int written = sprintf_s(name, 10, "Ball %d", i);
@@ -25,14 +25,11 @@ void GameWorld::Initialize()
 
     m_world.set<WorldTime>({ 0.f });
 
-    flecs::entity e = m_world.lookup("Ball 99");
-    const auto check = e.is_alive();
-    
     m_world.system<Position, OscillatorOffset, const Mesh>("Move Mesh")
         .each([](const flecs::entity& e, Position& p, OscillatorOffset& offset, const Mesh&)
             {
                 const WorldTime* worldTime = e.world().get<WorldTime>();
-                offset.dz = 0.05f * sinf((worldTime->timeSinceStart + offset.phase) * 2.f);
+                offset.dz = 5.f * sinf((worldTime->timeSinceStart + offset.phase) * 2.f) * e.delta_time();
                 p.z += offset.dz;
             });
 }

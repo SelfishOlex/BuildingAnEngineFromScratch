@@ -330,9 +330,7 @@ namespace Olex
         using namespace DirectX;
 
         // Update the model matrix.
-        const float angle = static_cast<float>( args.m_totalTime * 90.0 );
-        const XMVECTOR rotationAxis = XMVectorSet( 0, 1, 1, 0 );
-        m_ModelMatrix = XMMatrixRotationAxis( rotationAxis, XMConvertToRadians( angle ) );
+        m_ModelMatrix = XMMatrixRotationRollPitchYaw(0, 0, 0);
 
         // Update the view matrix.
         const XMVECTOR eyePosition = XMVectorSet( -100, 0, 0, 1 );
