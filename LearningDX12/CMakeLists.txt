@@ -22,6 +22,7 @@ add_subdirectory(Source)
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     Fbx
     Flecs
+    ImGui
     Physics
     Renderer
 )
