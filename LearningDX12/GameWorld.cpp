@@ -1,9 +1,31 @@
 ﻿
 #include "GameWorld.h"
 
+#include "PhysicsWorld/PhysxWorld.h"
+
 
 void GameWorld::Initialize()
 {
+    m_world.set<WorldTime>({ 0.f });
+
+    m_world.system<Position, OscillatorOffset, const Mesh>("Move Mesh")
+        .each([](const flecs::entity& e, Position& p, OscillatorOffset& offset, const Mesh&)
+            {
+                const WorldTime* worldTime = e.world().get<WorldTime>();
+                offset.dz = 5.f * sinf((worldTime->timeSinceStart + offset.phase) * 2.f) * e.delta_time();
+                p.z += offset.dz;
+            });
+}
+
+void GameWorld::CreateWorld()
+{
+    {
+        flecs::entity plane = m_world.entity("Ground");
+        plane.add<Position>();
+        plane.set<ShapeOfPlane>({ 0, 0, 1, 4 });
+        plane.add<PhysicalRigidStatic>();
+    }
+
     for (int i = 0; i < 70; ++i)
     {
         char name[10];
@@ -14,24 +36,14 @@ void GameWorld::Initialize()
 
             const float x = -80 + static_cast<float>(i) * 10.f;
             const float y = static_cast<float>(i * i) * 0.1f;
-            const float z = -4 + static_cast<float>(i);
+            const float z = 1 + static_cast<float>(i);
 
-            // e.add<Position>(); // position is automatically added on set()
             e.set<Position>({ x, y, z });
             e.add<Mesh>();
-            e.set<OscillatorOffset>({ i * 0.1f, 0.f });
+            e.set<ShapeOfSphere>({ 1.f });
+            e.add<PhysicalRigidBody>();
         }
     }
-
-    m_world.set<WorldTime>({ 0.f });
-
-    m_world.system<Position, OscillatorOffset, const Mesh>("Move Mesh")
-        .each([](const flecs::entity& e, Position& p, OscillatorOffset& offset, const Mesh&)
-            {
-                const WorldTime* worldTime = e.world().get<WorldTime>();
-                offset.dz = 5.f * sinf((worldTime->timeSinceStart + offset.phase) * 2.f) * e.delta_time();
-                p.z += offset.dz;
-            });
 }
 
 void GameWorld::Update(float deltaTime)

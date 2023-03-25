@@ -30,6 +30,7 @@ public:
     GameWorld() = default;
 
     void Initialize();
+    void CreateWorld();
 
     void Update(float deltaTime);
 

@@ -30,8 +30,9 @@ namespace Olex
         m_Height = windowRect.bottom - windowRect.top;
         m_Viewport = CD3DX12_VIEWPORT( 0.0f, 0.0f, static_cast<float>( m_Width ), static_cast<float>( m_Height ) );
 
-        m_physx.Initialize();
         m_gameWorld.Initialize();
+        m_physx.Initialize(m_gameWorld);
+        m_gameWorld.CreateWorld();
     }
 
     void MultipleObjectsDemo::LoadResources()
@@ -310,7 +311,8 @@ namespace Olex
     {
         static uint64_t frameCount = 0;
         static double totalTime = 0.0;
-
+        
+        m_physx.Update(static_cast<float>(args.m_elapsedTime));
         m_gameWorld.Update(static_cast<float>(args.m_elapsedTime));
 
         totalTime += args.m_elapsedTime;

@@ -3,12 +3,37 @@
 
 #include <PxPhysicsAPI.h>
 
+class GameWorld;
+
+struct ShapeOfSphere
+{
+    float sphereRadius = 1.f;
+};
+
+struct ShapeOfPlane
+{
+    float x;
+    float y;
+    float z;
+    float distance;
+};
+
+struct PhysicalRigidStatic
+{
+    physx::PxRigidStatic* rigidStatic = nullptr;
+};
+
+struct PhysicalRigidBody
+{
+    physx::PxRigidDynamic* rigidDynamic = nullptr;
+};
+
 class PhysxWorld
 {
 public:
     ~PhysxWorld();
 
-    void Initialize();
+    void Initialize(GameWorld& world);
     void Update(float deltaSeconds);
 
     struct Allocator : physx::PxAllocatorCallback
