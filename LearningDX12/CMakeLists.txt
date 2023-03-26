@@ -6,14 +6,12 @@ project(SelfishGame)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_executable(${PROJECT_NAME} 
-    Win32Application.cpp
-    Win32Application.h
-    Main.cpp
+    main.cpp
 )
 
 # Disable exceptions - can't do this yet  due to DirectTK12, remove it first then I can disable exceptions
@@ -33,12 +31,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${PROJECT_SOURCE_DIR}/Source"
 )
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC
-    _WINDOWS
-    NOMINMAX
-    UNICODE
-    _UNICODE
-)
+# target_compile_definitions(${PROJECT_NAME} PUBLIC
+#     _WINDOWS
+#     NOMINMAX
+#     UNICODE
+#     _UNICODE
+# )
 
 set (PHYSX5_DEBUG_LIB_PATH "${PROJECT_SOURCE_DIR}/3rdparty/PhysX5/lib/debug")
 set (PHYSX5_RELEASE_LIB_PATH "${PROJECT_SOURCE_DIR}/3rdparty/PhysX5/lib/checked")
