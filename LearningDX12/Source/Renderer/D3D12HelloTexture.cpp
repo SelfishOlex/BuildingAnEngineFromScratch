@@ -11,6 +11,7 @@
 
 #include "D3D12HelloTexture.h"
 
+#include <chrono>
 #include <d3dcompiler.h>
 #include <imgui.h>
 #include <backends/imgui_impl_dx12.h>
@@ -29,6 +30,9 @@ void D3D12HelloTexture::OnInit()
 {
     LoadPipeline();
     LoadAssets();
+
+    m_game.Initialize();
+    m_physics.Initialize(m_game);
 }
 
 // Load the rendering pipeline dependencies.
@@ -63,7 +67,7 @@ void D3D12HelloTexture::LoadPipeline()
             warpAdapter.Get(),
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&m_device)
-            ));
+        ));
     }
     else
     {
@@ -74,7 +78,7 @@ void D3D12HelloTexture::LoadPipeline()
             hardwareAdapter.Get(),
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&m_device)
-            ));
+        ));
     }
 
     // Describe and create the command queue.
@@ -102,7 +106,7 @@ void D3D12HelloTexture::LoadPipeline()
         nullptr,
         nullptr,
         &swapChain
-        ));
+    ));
 
     // This sample does not support fullscreen transitions.
     ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
@@ -143,7 +147,7 @@ void D3D12HelloTexture::LoadPipeline()
     }
 
     ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
-    
+
     ImGui_ImplDX12_Init(m_device.Get(), FrameCount,
         DXGI_FORMAT_R8G8B8A8_UNORM, m_srvHeap.Get(),
         m_srvHeap->GetCPUDescriptorHandleForHeapStart(),
@@ -152,7 +156,7 @@ void D3D12HelloTexture::LoadPipeline()
 
 // Load the sample assets.
 void D3D12HelloTexture::LoadAssets()
-{    
+{
     // Create the root signature.
     {
         D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
@@ -166,7 +170,7 @@ void D3D12HelloTexture::LoadAssets()
         }
 
         CD3DX12_DESCRIPTOR_RANGE1 ranges[1];
-        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
+        ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0/*, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC*/);
 
         CD3DX12_ROOT_PARAMETER1 rootParameters[1];
         rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
@@ -207,10 +211,10 @@ void D3D12HelloTexture::LoadAssets()
         UINT compileFlags = 0;
 #endif
 
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, 
-"VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, 
-"PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
+        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr,
+            "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
+        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr,
+            "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
 
         // Define the vertex input layout.
         D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
@@ -245,7 +249,7 @@ void D3D12HelloTexture::LoadAssets()
     }
 
     // Create the command list.
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), 
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(),
         m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
 
     // Create the vertex buffer.
@@ -344,7 +348,7 @@ void D3D12HelloTexture::LoadAssets()
         srvDesc.Texture2D.MipLevels = 1;
         m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHeap->GetCPUDescriptorHandleForHeapStart());
     }
-    
+
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
 
@@ -410,6 +414,21 @@ std::vector<UINT8> D3D12HelloTexture::GenerateTextureData()
 // Update frame-based values.
 void D3D12HelloTexture::OnUpdate()
 {
+    static uint64_t frameCounter = 0;
+    static double totalSeconds = 0.0;
+    static double elapsedSeconds = 0.0;
+    static std::chrono::high_resolution_clock clock;
+    static auto t0 = clock.now();
+
+    frameCounter++;
+    const auto t1 = clock.now();
+    const auto deltaTime = t1 - t0;
+    t0 = t1;
+
+    const float frameTime = deltaTime.count() * 1e-9;    
+
+    m_physics.Update(frameTime);
+    m_game.Update(frameTime);
 }
 
 // Render the scene.
@@ -471,9 +490,6 @@ void D3D12HelloTexture::PopulateCommandList()
     m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
     m_commandList->DrawInstanced(3, 1, 0, 0);
-
-    // Indicate that the back buffer will now be used to present.
-    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
         
     // ImGUI portion
     if (true)
@@ -484,27 +500,34 @@ void D3D12HelloTexture::PopulateCommandList()
         ImGui::NewFrame();
         ImGui::ShowDemoWindow();
 
+        m_game.DrawImGui();
+
         // Rendering
         ImGui::Render();
-                
+
         const UINT backBufferIdx = m_swapChain->GetCurrentBackBufferIndex();
 
         D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource   = m_renderTargets[backBufferIdx].Get();
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = m_renderTargets[backBufferIdx].Get();
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        m_commandList->Reset(m_commandAllocator.Get(), nullptr);
-        m_commandList->ResourceBarrier(1, &barrier);
-        
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        //m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+        //m_commandList->ResourceBarrier(1, &barrier);
+
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
-        m_commandList->ResourceBarrier(1, &barrier);
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+        //m_commandList->ResourceBarrier(1, &barrier);
     }
-    
+
+    // Indicate that the back buffer will now be used to present.
+    m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+
+
     ThrowIfFailed(m_commandList->Close());
 }
 

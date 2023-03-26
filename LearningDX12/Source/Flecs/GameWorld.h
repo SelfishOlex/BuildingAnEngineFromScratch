@@ -34,5 +34,10 @@ public:
 
     void Update(float deltaTime);
 
+    void DrawImGui();
+
     flecs::world m_world;
+
+private:
+    float m_lastFrameTime = 0.f;
 };

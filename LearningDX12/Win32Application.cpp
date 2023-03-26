@@ -59,7 +59,8 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow)
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Game pad Controls
 
     // Setup Dear ImGui style
-    ImGui::StyleColorsDark();        
+    ImGui::StyleColorsClassic();
+    //ImGui::StyleColorsDark();
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(m_hwnd);
 

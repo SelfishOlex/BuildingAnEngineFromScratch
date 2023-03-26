@@ -14,6 +14,8 @@
 #include <d3dx12.h>
 #include <DirectXMath.h>
 #include <dxgi1_4.h>
+#include <GameWorld.h>
+#include <PhysicsWorld/PhysxWorld.h>
 
 #include "DXSample.h"
 
@@ -37,6 +39,12 @@ public:
     void OnDestroy() override;
 
 private:
+    /*
+     * Game objects
+     */
+    GameWorld m_game;
+    PhysxWorld m_physics;
+
     static const UINT FrameCount = 2;
     static const UINT TextureWidth = 256;
     static const UINT TextureHeight = 256;
