@@ -54,6 +54,8 @@ private:
     std::vector<VkImage> swapChainImages; // no cleanup needed    
     std::vector<VkImageView> swapChainImageViews;
     VkPipelineLayout pipelineLayout;
+    VkRenderPass renderPass;
+    VkPipeline graphicsPipeline;
     
     // Swap chain related data
     VkFormat swapChainImageFormat;

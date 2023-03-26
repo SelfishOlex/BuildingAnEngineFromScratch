@@ -105,8 +105,8 @@ file(COPY "${PROJECT_SOURCE_DIR}/Resources/texture.jpg"  DESTINATION ${CMAKE_CUR
 add_custom_target(shaders)
 
 set(GLSL_SHADER_FILES 
-    Resources/shaders/shaders.frag
-    Resources/shaders/shaders.vert
+    ${PROJECT_SOURCE_DIR}/Resources/shaders/shaders.frag
+    ${PROJECT_SOURCE_DIR}/Resources/shaders/shaders.vert
 )
 
 source_group("Selfish Shaders" FILES ${GLSL_SHADER_FILES})
