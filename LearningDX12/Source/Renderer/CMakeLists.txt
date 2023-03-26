@@ -1,6 +1,17 @@
 
+option(GLFW_BUILD_EXAMPLES OFF)
+option(GLFW_BUILD_TESTS OFF)
+option(GLFW_BUILD_DOCS OFF)
 add_subdirectory(glfw-3.3.8)
+
 add_subdirectory(glm-0.9.9.8)
+
+set(ENABLE_HLSL OFF)
+add_subdirectory(glslang-12.1.0)
+#set_target_properties(Renderer PROPERTIES FOLDER "Selfish")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
+
 
 add_library(Renderer
     Renderer.cpp

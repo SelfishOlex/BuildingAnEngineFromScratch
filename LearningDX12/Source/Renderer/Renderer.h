@@ -2,5 +2,9 @@
 class Renderer
 {
 public:
-    void Start();
+    void InitVulkan();
+
+    void MainLoop();
+
+    void Cleanup();
 };
