@@ -23,7 +23,7 @@ private:
 
     void InitVulkan()
     {
-        m_renderer.InitVulkan();
+        m_renderer.InitVulkan(m_window);
     }
 
     void MainLoop()

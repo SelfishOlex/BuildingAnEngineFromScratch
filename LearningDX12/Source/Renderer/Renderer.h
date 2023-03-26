@@ -8,14 +8,27 @@
 struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
+};
+
+struct SwapChainSupportDetails
+{
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
 };
 
 class Renderer
 {
 public:
-    void InitVulkan();
+    void InitVulkan(GLFWwindow* window);
     bool isDeviceSuitable(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    QueueFamilyIndices findQueueFamiliesWithSurfaces(VkPhysicalDevice device);
 
     void MainLoop();
 
@@ -28,8 +41,21 @@ private:
         "VK_LAYER_KHRONOS_validation"
     };
 
+    const std::vector<const char*> deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
     VkInstance instance;
     VkDevice device;
     VkQueue graphicsQueue;
     VkSurfaceKHR surface;
+    VkQueue presentQueue;
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages; // no cleanup needed
+
+    // Swap chain related data
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    
+    std::vector<VkImageView> swapChainImageViews;
 };
