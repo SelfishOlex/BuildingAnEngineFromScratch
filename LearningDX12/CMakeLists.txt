@@ -6,7 +6,8 @@ project(SelfishGame)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
+# Hide console
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -14,7 +15,6 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
-# Disable exceptions - can't do this yet  due to DirectTK12, remove it first then I can disable exceptions
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
 
 add_subdirectory(Source)

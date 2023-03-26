@@ -1,9 +1,55 @@
 
+#include <GLFW/glfw3.h>
 #include <Renderer/Renderer.h>
+
+class Application {
+public:
+    void Run()
+    {
+        InitWindow();
+        InitVulkan();
+        MainLoop();
+        Cleanup();
+    }
+
+private:
+    void InitWindow()
+    {
+        glfwInit();
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        m_window = glfwCreateWindow(800, 600, "Vulkan", nullptr, nullptr);
+    }
+
+    void InitVulkan()
+    {
+        m_renderer.InitVulkan();
+    }
+
+    void MainLoop()
+    {
+        while (!glfwWindowShouldClose(m_window)) 
+        {
+            glfwPollEvents();
+        }
+    }
+
+    void Cleanup()
+    {
+        m_renderer.Cleanup();
+
+        glfwDestroyWindow(m_window);
+        glfwTerminate();
+    }
+
+    Renderer m_renderer;
+
+    GLFWwindow* m_window;
+};
 
 int main()
 {
-    Renderer renderer;
-    renderer.Start();
+    Application app;
+    app.Run();
     return 0;
 }

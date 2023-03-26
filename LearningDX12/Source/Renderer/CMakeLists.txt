@@ -10,7 +10,7 @@ set(ENABLE_HLSL OFF)
 add_subdirectory(glslang-12.1.0)
 #set_target_properties(Renderer PROPERTIES FOLDER "Selfish")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs-c-")
 
 
 add_library(Renderer
