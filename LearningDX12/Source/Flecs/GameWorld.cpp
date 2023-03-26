@@ -1,6 +1,8 @@
 ﻿
 #include "GameWorld.h"
 
+#include <ImGui/imgui.h>
+
 #include "PhysicsWorld/PhysxWorld.h"
 
 
@@ -48,8 +50,24 @@ void GameWorld::CreateWorld()
 
 void GameWorld::Update(float deltaTime)
 {
+    m_lastFrameTime = deltaTime;
+
     const WorldTime* worldTime = m_world.get<WorldTime>();
     m_world.set<WorldTime>({ worldTime->timeSinceStart + deltaTime });
 
     const bool result = m_world.progress(deltaTime);
+}
+
+void GameWorld::DrawImGui()
+{
+    ImGui::SetNextWindowSize(ImVec2(250, 100));
+    ImGui::Begin("FPS Window");
+
+    if (m_lastFrameTime > 0.f)
+    {
+        ImGui::Text("fps %0.f", 1.f / m_lastFrameTime);
+        ImGui::Text("frame %0.f ms", m_lastFrameTime*1000.f);
+    }
+
+    ImGui::End();
 }
