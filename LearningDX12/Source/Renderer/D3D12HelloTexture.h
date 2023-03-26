@@ -62,13 +62,23 @@ private:
     ComPtr<IDXGISwapChain3> m_swapChain;
     ComPtr<ID3D12Device> m_device;
     ComPtr<ID3D12Resource> m_renderTargets[FrameCount];
-    ComPtr<ID3D12CommandAllocator> m_commandAllocator;
     ComPtr<ID3D12CommandQueue> m_commandQueue;
     ComPtr<ID3D12RootSignature> m_rootSignature;
     ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap> m_srvHeap;
     ComPtr<ID3D12PipelineState> m_pipelineState;
-    ComPtr<ID3D12GraphicsCommandList> m_commandList;
+
+    struct CommandList
+    {
+        ComPtr<ID3D12GraphicsCommandList> m_commandList;
+        ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+    };
+
+    CommandList m_worldList;
+    CommandList m_imGuiList;
+
+    void DrawImGui(CommandList& context);
+
     UINT m_rtvDescriptorSize;
 
     // App resources.
