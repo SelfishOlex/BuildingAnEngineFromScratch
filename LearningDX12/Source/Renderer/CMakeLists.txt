@@ -1,19 +1,17 @@
 
 add_library(Renderer
-    BaseGameInterface.cpp
-    BaseGameInterface.h
-    CommandQueue.cpp
-    CommandQueue.h
+    D3D12HelloTexture.cpp
+    D3D12HelloTexture.h
     d3dx12.h
-    DX12App.cpp
-    DX12App.h
-    MultipleObjectsDemo.cpp
-    MultipleObjectsDemo.h
+    DXSample.cpp
+    DXSample.h
+    DXSampleHelper.h
     Resource.h
     targetver.h
 )
 
 target_include_directories(Renderer PUBLIC
+    "${PROJECT_SOURCE_DIR}"
     "${PROJECT_SOURCE_DIR}/Source"
     "${PROJECT_SOURCE_DIR}/Source/ImGui"
     "${PROJECT_SOURCE_DIR}/Source/Renderer"

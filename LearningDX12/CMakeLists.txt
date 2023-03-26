@@ -11,10 +11,9 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_executable(${PROJECT_NAME} 
-    LearningDX12.cpp
-    LearningDX12.h
-    Source/framework.h
-    LearningDX12.rc
+    Win32Application.cpp
+    Win32Application.h
+    Main.cpp
 )
 
 # Disable exceptions - can't do this yet  due to DirectTK12, remove it first then I can disable exceptions
@@ -107,27 +106,33 @@ file(COPY "${PROJECT_SOURCE_DIR}/Resources/texture.jpg"  DESTINATION ${CMAKE_CUR
 # Build HLSL shaders
 add_custom_target(shaders)
 
-set(HLSL_SHADER_FILES 
-    Resources/PixelShader_Textured_Light.hlsl
-    Resources/VertexShader_Textured_Light.hlsl
-)
+# set(HLSL_SHADER_FILES 
+#     Resources/PixelShader_Textured_Light.hlsl
+#     Resources/VertexShader_Textured_Light.hlsl
+# )
 
-set_source_files_properties(Resources/VertexShader_Textured_Light.hlsl PROPERTIES ShaderType "vs")
-set_source_files_properties(Resources/PixelShader_Textured_Light.hlsl PROPERTIES ShaderType "ps")
-set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "5_1")
+# set(HLSL_SHADER_FILES 
+#     Resources/shaders.hlsl
+# )
 
-foreach(FILE ${HLSL_SHADER_FILES})
-  get_filename_component(FILE_WE ${FILE} NAME_WE)
-  get_source_file_property(shadertype ${FILE} ShaderType)
-  get_source_file_property(shadermodel ${FILE} ShaderModel)
-  add_custom_command(TARGET shaders
-                     COMMAND fxc.exe /nologo /Emain /T${shadertype}_${shadermodel} $<IF:$<CONFIG:DEBUG>,/Od,/O1> /Zi /Fo ${CMAKE_BINARY_DIR}/${FILE_WE}.cso /Fd ${CMAKE_BINARY_DIR}/${FILE_WE}.pdb ${FILE}
-                     MAIN_DEPENDENCY ${FILE}
-                     COMMENT "HLSL ${FILE}"
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                     VERBATIM)
-endforeach(FILE)
+file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders.hlsl"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-add_dependencies(${PROJECT_NAME} shaders)
+# set_source_files_properties(Resources/VertexShader_Textured_Light.hlsl PROPERTIES ShaderType "vs")
+# set_source_files_properties(Resources/PixelShader_Textured_Light.hlsl PROPERTIES ShaderType "ps")
+# set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "5_1")
 
-set_target_properties(shaders PROPERTIES FOLDER "Selfish")
+# foreach(FILE ${HLSL_SHADER_FILES})
+#   get_filename_component(FILE_WE ${FILE} NAME_WE)
+#   get_source_file_property(shadertype ${FILE} ShaderType)
+#   get_source_file_property(shadermodel ${FILE} ShaderModel)
+#   add_custom_command(TARGET shaders
+#                      COMMAND fxc.exe /nologo /Emain /T${shadertype}_${shadermodel} $<IF:$<CONFIG:DEBUG>,/Od,/O1> /Zi /Fo ${CMAKE_BINARY_DIR}/${FILE_WE}.cso /Fd ${CMAKE_BINARY_DIR}/${FILE_WE}.pdb ${FILE}
+#                      MAIN_DEPENDENCY ${FILE}
+#                      COMMENT "HLSL ${FILE}"
+#                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#                      VERBATIM)
+# endforeach(FILE)
+
+# add_dependencies(${PROJECT_NAME} shaders)
+
+# set_target_properties(shaders PROPERTIES FOLDER "Selfish")
