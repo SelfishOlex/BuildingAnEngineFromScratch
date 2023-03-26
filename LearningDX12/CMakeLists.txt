@@ -104,7 +104,7 @@ file(COPY "${PROJECT_SOURCE_DIR}/Resources/model.fbx"  DESTINATION ${CMAKE_CURRE
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/texture.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Build HLSL shaders
-add_custom_target(shaders)
+#add_custom_target(shaders)
 
 # set(HLSL_SHADER_FILES 
 #     Resources/PixelShader_Textured_Light.hlsl

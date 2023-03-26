@@ -63,7 +63,7 @@ void D3D12HelloTexture::LoadPipeline()
             warpAdapter.Get(),
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&m_device)
-            ));
+        ));
     }
     else
     {
@@ -74,7 +74,7 @@ void D3D12HelloTexture::LoadPipeline()
             hardwareAdapter.Get(),
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&m_device)
-            ));
+        ));
     }
 
     // Describe and create the command queue.
@@ -102,7 +102,7 @@ void D3D12HelloTexture::LoadPipeline()
         nullptr,
         nullptr,
         &swapChain
-        ));
+    ));
 
     // This sample does not support fullscreen transitions.
     ThrowIfFailed(factory->MakeWindowAssociation(Win32Application::GetHwnd(), DXGI_MWA_NO_ALT_ENTER));
@@ -143,7 +143,7 @@ void D3D12HelloTexture::LoadPipeline()
     }
 
     ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
-    
+
     ImGui_ImplDX12_Init(m_device.Get(), FrameCount,
         DXGI_FORMAT_R8G8B8A8_UNORM, m_srvHeap.Get(),
         m_srvHeap->GetCPUDescriptorHandleForHeapStart(),
@@ -152,7 +152,7 @@ void D3D12HelloTexture::LoadPipeline()
 
 // Load the sample assets.
 void D3D12HelloTexture::LoadAssets()
-{    
+{
     // Create the root signature.
     {
         D3D12_FEATURE_DATA_ROOT_SIGNATURE featureData = {};
@@ -186,8 +186,23 @@ void D3D12HelloTexture::LoadAssets()
         sampler.RegisterSpace = 0;
         sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
+        // A single 32-bit constant root parameter that is used by the vertex shader.
+        CD3DX12_ROOT_PARAMETER1 rootParameters[3] = {};
+        rootParameters[0].InitAsConstants( sizeof( DirectX::XMMATRIX ) / 4, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX );
+
+        // shader resource view, for texture sampling
+        CD3DX12_DESCRIPTOR_RANGE1 descriptorRange = {};
+        descriptorRange.Init( D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_NONE, 0 );
+        rootParameters[1].InitAsDescriptorTable( 1, &descriptorRange, D3D12_SHADER_VISIBILITY_PIXEL );
+
+        // light info
+        rootParameters[2].InitAsConstants( sizeof( LightInfo ) / 4, 1, 0, D3D12_SHADER_VISIBILITY_PIXEL );
+
         CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-        rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 1, &sampler, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+        rootSignatureDesc.Init_1_1( _countof( rootParameters ), rootParameters, 1, &samplerDesc, rootSignatureFlags );
+
+        /*CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
+        rootSignatureDesc.Init_1_1(_countof(rootParameters), rootParameters, 1, &sampler, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);*/
 
         ComPtr<ID3DBlob> signature;
         ComPtr<ID3DBlob> error;
@@ -207,24 +222,18 @@ void D3D12HelloTexture::LoadAssets()
         UINT compileFlags = 0;
 #endif
 
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, 
-"VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
-        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr, 
-"PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
+        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr,
+            "VSMain", "vs_5_0", compileFlags, 0, &vertexShader, nullptr));
+        ThrowIfFailed(D3DCompileFromFile(GetAssetFullPath(L"shaders.hlsl").c_str(), nullptr, nullptr,
+            "PSMain", "ps_5_0", compileFlags, 0, &pixelShader, nullptr));
 
         // Define the vertex input layout.
         D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12 + 8, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
         };
-
-        //// Create the vertex input layout
-        //D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
-        //    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        //    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        //    { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12 + 8, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        //};
 
         // Describe and create the graphics pipeline state object (PSO).
         D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -245,20 +254,18 @@ void D3D12HelloTexture::LoadAssets()
     }
 
     // Create the command list.
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), 
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(),
         m_pipelineState.Get(), IID_PPV_ARGS(&m_commandList)));
+
+    m_fbxLoader = std::make_unique<Olex::FbxLoader>("model.fbx");
+    const Olex::FbxLoader::Mesh& mesh = m_fbxLoader->GetMeshes()[0];
 
     // Create the vertex buffer.
     {
-        // Define the geometry for a triangle.
-        Vertex triangleVertices[] =
-        {
-            { { 0.0f, 0.25f * m_aspectRatio, 0.0f }, { 0.5f, 0.0f } },
-            { { 0.25f, -0.25f * m_aspectRatio, 0.0f }, { 1.0f, 1.0f } },
-            { { -0.25f, -0.25f * m_aspectRatio, 0.0f }, { 0.0f, 1.0f } }
-        };
+        // Get the geometry
+        const Olex::FbxLoader::Mesh::VertexInfo* triangleVertices = &mesh.m_vertices[0];
 
-        const UINT vertexBufferSize = sizeof(triangleVertices);
+        const UINT vertexBufferSize = static_cast<UINT>(mesh.m_vertices.size());
 
         // Note: using upload heaps to transfer static data like vert buffers is not 
         // recommended. Every time the GPU needs it, the upload heap will be marshalled 
@@ -281,8 +288,20 @@ void D3D12HelloTexture::LoadAssets()
 
         // Initialize the vertex buffer view.
         m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-        m_vertexBufferView.StrideInBytes = sizeof(Vertex);
+        m_vertexBufferView.StrideInBytes = sizeof(Olex::FbxLoader::Mesh::VertexInfo);
         m_vertexBufferView.SizeInBytes = vertexBufferSize;
+
+
+        // Upload index buffer data.
+        ComPtr<ID3D12Resource> intermediateIndexBuffer;
+        UpdateBufferResource(m_commandList.Get(),
+            &m_indexBuffer, &intermediateIndexBuffer,
+            mesh.m_indices.size(), sizeof(DirectX::XMINT3), mesh.m_indices.data());
+
+        // Create index buffer view.
+        m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+        m_indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+        m_indexBufferView.SizeInBytes = static_cast<UINT>(mesh.m_indices.size() * sizeof(DirectX::XMINT3));
     }
 
     // Note: ComPtr's are CPU objects but this resource needs to stay in scope until
@@ -344,7 +363,7 @@ void D3D12HelloTexture::LoadAssets()
         srvDesc.Texture2D.MipLevels = 1;
         m_device->CreateShaderResourceView(m_texture.Get(), &srvDesc, m_srvHeap->GetCPUDescriptorHandleForHeapStart());
     }
-    
+
     // Close the command list and execute it to begin the initial GPU setup.
     ThrowIfFailed(m_commandList->Close());
 
@@ -367,6 +386,55 @@ void D3D12HelloTexture::LoadAssets()
         // list in our main loop but for now, we just want to wait for setup to 
         // complete before continuing.
         WaitForPreviousFrame();
+    }
+}
+
+void D3D12HelloTexture::UpdateBufferResource(
+    ID3D12GraphicsCommandList* commandList,
+    ID3D12Resource** pDestinationResource,
+    ID3D12Resource** pIntermediateResource,
+    size_t numElements, size_t elementSize, const void* bufferData,
+    D3D12_RESOURCE_FLAGS flags)
+{
+    ID3D12Device* device = m_device.Get();
+
+    const size_t bufferSize = numElements * elementSize;
+
+    const CD3DX12_HEAP_PROPERTIES heapPropertiesDefault(D3D12_HEAP_TYPE_DEFAULT);
+    const CD3DX12_RESOURCE_DESC bufferDefault = CD3DX12_RESOURCE_DESC::Buffer(bufferSize, flags);
+
+    // Create a committed resource for the GPU resource in a default heap.
+    ThrowIfFailed(device->CreateCommittedResource(
+        &heapPropertiesDefault,
+        D3D12_HEAP_FLAG_NONE,
+        &bufferDefault,
+        //D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_COMMON,
+        nullptr,
+        IID_PPV_ARGS(pDestinationResource)));
+
+    // Create an committed resource for the upload.
+    if (bufferData)
+    {
+        CD3DX12_HEAP_PROPERTIES heapPropertiesUpload(D3D12_HEAP_TYPE_UPLOAD);
+        const auto bufferUpload = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+
+        ThrowIfFailed(device->CreateCommittedResource(
+            &heapPropertiesUpload,
+            D3D12_HEAP_FLAG_NONE,
+            &bufferUpload,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(pIntermediateResource)));
+
+        D3D12_SUBRESOURCE_DATA subresourceData = {};
+        subresourceData.pData = bufferData;
+        subresourceData.RowPitch = bufferSize;
+        subresourceData.SlicePitch = subresourceData.RowPitch;
+
+        UpdateSubresources(commandList,
+            *pDestinationResource, *pIntermediateResource,
+            0, 0, 1, &subresourceData);
     }
 }
 
@@ -474,7 +542,7 @@ void D3D12HelloTexture::PopulateCommandList()
 
     // Indicate that the back buffer will now be used to present.
     m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_renderTargets[m_frameIndex].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-        
+
     // ImGUI portion
     if (true)
     {
@@ -486,25 +554,25 @@ void D3D12HelloTexture::PopulateCommandList()
 
         // Rendering
         ImGui::Render();
-                
+
         const UINT backBufferIdx = m_swapChain->GetCurrentBackBufferIndex();
 
         D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource   = m_renderTargets[backBufferIdx].Get();
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = m_renderTargets[backBufferIdx].Get();
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
         m_commandList->Reset(m_commandAllocator.Get(), nullptr);
         m_commandList->ResourceBarrier(1, &barrier);
-        
+
         ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
         m_commandList->ResourceBarrier(1, &barrier);
     }
-    
+
     ThrowIfFailed(m_commandList->Close());
 }
 

@@ -14,6 +14,7 @@
 #include <d3dx12.h>
 #include <DirectXMath.h>
 #include <dxgi1_4.h>
+#include <FbxLoader.h>
 
 #include "DXSample.h"
 
@@ -41,13 +42,7 @@ private:
     static const UINT TextureWidth = 256;
     static const UINT TextureHeight = 256;
     static const UINT TexturePixelSize = 4;    // The number of bytes used to represent a pixel in the texture.
-
-    struct Vertex
-    {
-        XMFLOAT3 position;
-        XMFLOAT2 uv;
-    };
-
+    
     // Pipeline objects.
     CD3DX12_VIEWPORT m_viewport;
     CD3DX12_RECT m_scissorRect;
@@ -66,7 +61,14 @@ private:
     // App resources.
     ComPtr<ID3D12Resource> m_vertexBuffer;
     D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
+
+    // Index buffer for the cube.
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;
+    D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
+
     ComPtr<ID3D12Resource> m_texture;
+
+    std::unique_ptr<Olex::FbxLoader> m_fbxLoader;
 
     // Synchronization objects.
     UINT m_frameIndex;
@@ -79,4 +81,11 @@ private:
     std::vector<UINT8> GenerateTextureData();
     void PopulateCommandList();
     void WaitForPreviousFrame();
+
+    void UpdateBufferResource(
+        ID3D12GraphicsCommandList* commandList,
+        ID3D12Resource** pDestinationResource,
+        ID3D12Resource** pIntermediateResource,
+        size_t numElements, size_t elementSize, const void* bufferData,
+        D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE );
 };

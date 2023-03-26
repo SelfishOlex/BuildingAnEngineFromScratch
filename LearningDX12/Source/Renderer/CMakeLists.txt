@@ -8,6 +8,7 @@ add_library(Renderer
     DXSampleHelper.h
     Resource.h
     targetver.h
+    #Resources/shaders.hlsl
 )
 
 target_include_directories(Renderer PUBLIC
