@@ -51,11 +51,14 @@ private:
     VkSurfaceKHR surface;
     VkQueue presentQueue;
     VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages; // no cleanup needed
-
+    std::vector<VkImage> swapChainImages; // no cleanup needed    
+    std::vector<VkImageView> swapChainImageViews;
+    VkPipelineLayout pipelineLayout;
+    
     // Swap chain related data
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
-    
-    std::vector<VkImageView> swapChainImageViews;
+
+    std::vector<char> ReadFile(const char* filename);
+    VkShaderModule createShaderModule(const std::vector<char>& code);
 };

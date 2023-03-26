@@ -101,25 +101,40 @@ set(PHYSX5_BUILD_TYPE "checked")
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/model.fbx"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/texture.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-# Build HLSL shaders
-#add_custom_target(shaders)
+# Build GLSL shaders
+add_custom_target(shaders)
 
-# set(HLSL_SHADER_FILES 
-#     Resources/PixelShader_Textured_Light.hlsl
-#     Resources/VertexShader_Textured_Light.hlsl
-# )
+set(GLSL_SHADER_FILES 
+    Resources/shaders/shaders.frag
+    Resources/shaders/shaders.vert
+)
 
-# set(HLSL_SHADER_FILES 
-#     Resources/shaders.hlsl
-# )
+source_group("Selfish Shaders" FILES ${GLSL_SHADER_FILES})
 
-file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders.hlsl"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 
-# set_source_files_properties(Resources/VertexShader_Textured_Light.hlsl PROPERTIES ShaderType "vs")
-# set_source_files_properties(Resources/PixelShader_Textured_Light.hlsl PROPERTIES ShaderType "ps")
-# set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "5_1")
+file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders/shader.frag"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders/shader.vert"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-# foreach(FILE ${HLSL_SHADER_FILES})
+add_custom_command(
+    TARGET shaders
+    COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${CMAKE_BINARY_DIR}/shader.frag -o ${CMAKE_BINARY_DIR}/shaders/frag.spv
+    MAIN_DEPENDENCY ${FILE}
+    COMMENT "Compiling shader.frag..."
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    VERBATIM
+)
+
+add_custom_command(
+    TARGET shaders
+    COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${CMAKE_BINARY_DIR}/shader.vert -o ${CMAKE_BINARY_DIR}/shaders/vert.spv
+    MAIN_DEPENDENCY ${FILE}
+    COMMENT "Compiling shader.vert..."
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    VERBATIM
+)
+
+# foreach(FILE ${GLSL_SHADER_FILES})
 #   get_filename_component(FILE_WE ${FILE} NAME_WE)
 #   get_source_file_property(shadertype ${FILE} ShaderType)
 #   get_source_file_property(shadermodel ${FILE} ShaderModel)
@@ -131,6 +146,7 @@ file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders.hlsl"  DESTINATION ${CMAKE_CU
 #                      VERBATIM)
 # endforeach(FILE)
 
-# add_dependencies(${PROJECT_NAME} shaders)
+add_dependencies(${PROJECT_NAME} shaders)
 
-# set_target_properties(shaders PROPERTIES FOLDER "Selfish")
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set_target_properties(glslangValidator PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

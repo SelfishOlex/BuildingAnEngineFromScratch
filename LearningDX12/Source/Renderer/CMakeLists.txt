@@ -7,6 +7,9 @@ add_subdirectory(glfw-3.3.8)
 add_subdirectory(glm-0.9.9.8)
 
 set(ENABLE_HLSL OFF)
+set(ENABLE_CTEST OFF)
+set(ENABLE_SPVREMAPPER OFF)
+set(ENABLE_GLSLANG_INSTALL ON)
 add_subdirectory(glslang-12.1.0)
 #set_target_properties(Renderer PROPERTIES FOLDER "Selfish")
 
