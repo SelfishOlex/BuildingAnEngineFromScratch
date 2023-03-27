@@ -31,7 +31,10 @@ private:
         while (!glfwWindowShouldClose(m_window)) 
         {
             glfwPollEvents();
+            m_renderer.DrawFrame();
         }
+
+        m_renderer.OnExitMainLoop();
     }
 
     void Cleanup()

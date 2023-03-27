@@ -22,6 +22,18 @@ class Renderer
 {
 public:
     void InitVulkan(GLFWwindow* window);
+
+    void MainLoop();
+
+    void Cleanup();
+
+    void DrawFrame();
+
+    void OnExitMainLoop();
+
+private:
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
     bool isDeviceSuitable(VkPhysicalDevice device);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
@@ -30,11 +42,6 @@ public:
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamiliesWithSurfaces(VkPhysicalDevice device);
 
-    void MainLoop();
-
-    void Cleanup();
-
-private:
     bool enableValidationLayers = true;
 
     const std::vector<const char*> validationLayers = {
@@ -56,6 +63,14 @@ private:
     VkPipelineLayout pipelineLayout;
     VkRenderPass renderPass;
     VkPipeline graphicsPipeline;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkCommandPool commandPool;
+    VkCommandBuffer commandBuffer;
+
+    // synchronization objects
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+    VkFence inFlightFence;
     
     // Swap chain related data
     VkFormat swapChainImageFormat;
