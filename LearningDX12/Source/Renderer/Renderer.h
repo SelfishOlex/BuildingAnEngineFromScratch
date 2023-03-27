@@ -23,13 +23,13 @@ class Renderer
 public:
     void InitVulkan(GLFWwindow* window);
 
-    void MainLoop();
-
     void Cleanup();
 
     void DrawFrame();
 
     void OnExitMainLoop();
+
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
@@ -42,6 +42,12 @@ private:
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamiliesWithSurfaces(VkPhysicalDevice device);
 
+    void cleanupSwapChain();
+    void RecreateSwapChain();
+    void createSwapChain();
+    void createImageViews();
+    void createFramebuffers();
+
     bool enableValidationLayers = true;
 
     const std::vector<const char*> validationLayers = {
@@ -51,7 +57,9 @@ private:
     const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
-
+    
+    GLFWwindow* m_window;
+    VkPhysicalDevice m_physicalDevice;
     VkInstance instance;
     VkDevice device;
     VkQueue graphicsQueue;
@@ -65,7 +73,8 @@ private:
     VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
-    //VkCommandBuffer commandBuffer;
+
+    bool framebufferResized = false;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 

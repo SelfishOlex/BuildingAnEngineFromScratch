@@ -29,11 +29,24 @@ void Renderer::DrawFrame()
 
     auto& frameObject = frameObjects[currentFrame];
 
-    vkWaitForFences(device, 1, &frameObject.inFlightFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &frameObject.inFlightFence);
+    vkWaitForFences(device, 1, &frameObject.inFlightFence, VK_TRUE, UINT64_MAX);    
 
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, frameObject.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, frameObject.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        framebufferResized = false;
+        RecreateSwapChain();
+        return;
+    }
+    else
+    {
+        assert(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+    }
+
+    // Only reset the fence if we are submitting work
+    // this should not be done during a window resize or window minimize, for example
+    vkResetFences(device, 1, &frameObject.inFlightFence);
 
     recordCommandBuffer(frameObject.commandBuffer, imageIndex);
 
@@ -67,8 +80,16 @@ void Renderer::DrawFrame()
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr; // Optional
 
-    vkQueuePresentKHR(presentQueue, &presentInfo);
-    
+    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    {
+        RecreateSwapChain();
+    }
+    else
+    {
+        assert(result == VK_SUCCESS);
+    }
+
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT; // loop between 0 and max-1
 }
 
@@ -77,8 +98,21 @@ void Renderer::OnExitMainLoop()
     vkDeviceWaitIdle(device);
 }
 
+void Renderer::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+    if (Renderer* app = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(window)))
+    {
+        app->framebufferResized = true;
+    }
+}
+
 void Renderer::InitVulkan(GLFWwindow* window)
 {
+    m_window = window;
+
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
     //////////////////////// Create vulkan instance ////////////////////////////////////
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -169,6 +203,7 @@ void Renderer::InitVulkan(GLFWwindow* window)
     }
 
     assert(physicalDevice != VK_NULL_HANDLE);
+    m_physicalDevice = physicalDevice;
 
     ////////////////////////////// Create logical device //////////////////////////////
     QueueFamilyIndices indices = findQueueFamiliesWithSurfaces(physicalDevice);
@@ -216,72 +251,10 @@ void Renderer::InitVulkan(GLFWwindow* window)
     }
 
     ////////////////////////////// Create swap chain //////////////////////////////
-
-    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
-
-    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
-
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-    {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
-    }
-
-    VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
-
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = presentMode;
-    createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
-    assert(vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) == VK_SUCCESS);
-
-    ////////////////////////////// Create swap chain images //////////////////////////////
-    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
-    swapChainImages.resize(imageCount);
-    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
-
-    swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent = extent;
+    createSwapChain();
 
     ////////////////////////////// Create swap chain image views //////////////////////////////
-    swapChainImageViews.resize(swapChainImages.size());
-
-    for (size_t i = 0; i < swapChainImages.size(); i++)
-    {
-        VkImageViewCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = swapChainImages[i];
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        createInfo.format = swapChainImageFormat;
-
-        // default mapping
-        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        assert(vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) == VK_SUCCESS);
-    }
+    createImageViews();
 
     ////////////////////////////// Create pipeline layout //////////////////////////////
 
@@ -486,27 +459,7 @@ void Renderer::InitVulkan(GLFWwindow* window)
     assert(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) == VK_SUCCESS);
 
     ////////////////////////////// Create frame buffers //////////////////////////////
-
-    swapChainFramebuffers.resize(swapChainImageViews.size());
-
-    for (size_t i = 0; i < swapChainImageViews.size(); i++)
-    {
-        VkImageView attachments[] =
-        {
-            swapChainImageViews[i]
-        };
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
-        framebufferInfo.width = swapChainExtent.width;
-        framebufferInfo.height = swapChainExtent.height;
-        framebufferInfo.layers = 1;
-
-        assert(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) == VK_SUCCESS);
-    }
+    createFramebuffers();
 
     ////////////////////////////// Create command pool //////////////////////////////
 
@@ -546,6 +499,101 @@ void Renderer::InitVulkan(GLFWwindow* window)
         assert(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frameObjects[i].imageAvailableSemaphore) == VK_SUCCESS);
         assert(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frameObjects[i].renderFinishedSemaphore) == VK_SUCCESS);
         assert(vkCreateFence(device, &fenceInfo, nullptr, &frameObjects[i].inFlightFence) == VK_SUCCESS);
+    }
+}
+
+void Renderer::createSwapChain()
+{
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(m_physicalDevice);
+
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, m_window);
+
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+
+    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
+    {
+        imageCount = swapChainSupport.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface;
+
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    assert(vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) == VK_SUCCESS);
+
+    ////////////////////////////// Create swap chain images //////////////////////////////
+    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+
+    swapChainImageFormat = surfaceFormat.format;
+    swapChainExtent = extent;
+}
+
+void Renderer::createImageViews()
+{
+    swapChainImageViews.resize(swapChainImages.size());
+
+    for (size_t i = 0; i < swapChainImages.size(); i++)
+    {
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = swapChainImages[i];
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = swapChainImageFormat;
+
+        // default mapping
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+
+        assert(vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) == VK_SUCCESS);
+    }
+}
+
+void Renderer::createFramebuffers()
+{
+    swapChainFramebuffers.resize(swapChainImageViews.size());
+
+    for (size_t i = 0; i < swapChainImageViews.size(); i++)
+    {
+        VkImageView attachments[] =
+        {
+            swapChainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = swapChainExtent.width;
+        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        assert(vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) == VK_SUCCESS);
     }
 }
 
@@ -747,9 +795,23 @@ QueueFamilyIndices Renderer::findQueueFamiliesWithSurfaces(VkPhysicalDevice devi
     return indices;
 }
 
-void Renderer::MainLoop()
+void Renderer::RecreateSwapChain()
 {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(m_window, &width, &height);
+    while (width == 0 || height == 0) 
+    {
+        glfwGetFramebufferSize(m_window, &width, &height);
+        glfwWaitEvents();
+    }
 
+    vkDeviceWaitIdle(device);
+
+    cleanupSwapChain();
+
+    createSwapChain();
+    createImageViews();
+    createFramebuffers();
 }
 
 std::vector<char> Renderer::ReadFile(const char* filename)
@@ -784,32 +846,50 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
     return shaderModule;
 }
 
+void Renderer::cleanupSwapChain()
+{
+    for (size_t i = 0; i < swapChainFramebuffers.size(); i++)
+    {
+        vkDestroyFramebuffer(device, swapChainFramebuffers[i], nullptr);
+    }
+
+    for (size_t i = 0; i < swapChainImageViews.size(); i++)
+    {
+        vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+    }
+
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
+}
+
 void Renderer::Cleanup()
 {
+    cleanupSwapChain();
+
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroySemaphore(device, frameObjects[i].imageAvailableSemaphore, nullptr);
         vkDestroySemaphore(device, frameObjects[i].renderFinishedSemaphore, nullptr);
-        vkDestroyFence(device, frameObjects[i].inFlightFence, nullptr);        
+        vkDestroyFence(device, frameObjects[i].inFlightFence, nullptr);
     }
 
     vkDestroyCommandPool(device, commandPool, nullptr); // command buffers are freed by the pool
 
-    for (auto framebuffer : swapChainFramebuffers)
+    /*for (auto framebuffer : swapChainFramebuffers)
     {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
-    }
+    }*/
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
 
-    for (auto imageView : swapChainImageViews)
+    /*for (auto imageView : swapChainImageViews)
     {
         vkDestroyImageView(device, imageView, nullptr);
-    }
+    }*/
 
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
+    //vkDestroySwapchainKHR(device, swapChain, nullptr);
+
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);

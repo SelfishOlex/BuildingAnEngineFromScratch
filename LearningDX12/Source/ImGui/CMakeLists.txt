@@ -14,15 +14,22 @@ add_library(${LIB_NAME}
     imstb_textedit.h
     imstb_truetype.h
 
-    backends/imgui_impl_dx12.cpp
-    backends/imgui_impl_dx12.h
-    backends/imgui_impl_win32.cpp
-    backends/imgui_impl_win32.h
+    backends/imgui_impl_vulkan.cpp
+    backends/imgui_impl_vulkan.h
+    backends/imgui_impl_glfw.cpp
+    backends/imgui_impl_glfw.h
 )
 
 target_include_directories(${LIB_NAME} PUBLIC
     "${PROJECT_SOURCE_DIR}/Source"
     "${PROJECT_SOURCE_DIR}/Source/ImGui"
+    "${PROJECT_SOURCE_DIR}/Source/Renderer/vulkan/include"
 )
 
 set_target_properties(${LIB_NAME} PROPERTIES FOLDER "Selfish")
+
+target_link_libraries(${LIB_NAME} PUBLIC 
+    glfw   
+    glm
+    vulkan-1.lib
+)
