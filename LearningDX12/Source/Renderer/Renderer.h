@@ -65,13 +65,27 @@ private:
     VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
+    //VkCommandBuffer commandBuffer;
+
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+
+    // Command buffer and synchronization objects per frame in the swap chain
+    struct FrameObjects
+    {
+        VkCommandBuffer commandBuffer;
+        VkSemaphore imageAvailableSemaphore;
+        VkSemaphore renderFinishedSemaphore;
+        VkFence inFlightFence;
+    };
+
+    std::vector<FrameObjects> frameObjects;
+    uint32_t currentFrame = 0;
 
     // synchronization objects
-    VkSemaphore imageAvailableSemaphore;
+    /*VkSemaphore imageAvailableSemaphore;
     VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
-    
+    VkFence inFlightFence;*/
+
     // Swap chain related data
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
