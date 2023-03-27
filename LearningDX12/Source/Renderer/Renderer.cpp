@@ -797,13 +797,14 @@ QueueFamilyIndices Renderer::findQueueFamiliesWithSurfaces(VkPhysicalDevice devi
 
 void Renderer::RecreateSwapChain()
 {
+    // If we are minimized, block and wait.
     int width = 0, height = 0;
-    glfwGetFramebufferSize(m_window, &width, &height);
-    while (width == 0 || height == 0) 
+    do
     {
         glfwGetFramebufferSize(m_window, &width, &height);
         glfwWaitEvents();
     }
+    while (width == 0 || height == 0);
 
     vkDeviceWaitIdle(device);
 
