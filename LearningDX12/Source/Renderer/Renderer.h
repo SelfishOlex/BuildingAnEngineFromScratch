@@ -52,12 +52,15 @@ private:
     void createImageViews();
     void createFramebuffers();
 
-    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, 
+    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void createVertexBuffer();
+    void createIndexBuffer();
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
 
     bool enableValidationLayers = true;
 
@@ -69,11 +72,16 @@ private:
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    const std::vector<Vertex> vertices =
-    {
-        {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}
+    const std::vector<Vertex> vertices = {
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+    };
+
+    const std::vector<uint16_t> indices = {
+        0, 1, 2,
+        2, 3, 0
     };
 
     GLFWwindow* m_window;

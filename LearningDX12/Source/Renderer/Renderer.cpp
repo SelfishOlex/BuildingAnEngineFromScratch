@@ -487,8 +487,9 @@ void Renderer::InitVulkan()
 
     assert(vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) == VK_SUCCESS);
 
-    ////////////////////////////// Create vertex buffers //////////////////////////////
+    ////////////////////////////// Create mesh buffers //////////////////////////////
     createVertexBuffer();
+    createIndexBuffer();
 
     ////////////////////////////// Create command buffer //////////////////////////////
     VkCommandBufferAllocateInfo allocInfo{};
@@ -685,11 +686,34 @@ void Renderer::createVertexBuffer()
     memcpy(data, vertices.data(), bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, // vertex buffer type
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-    
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void Renderer::createIndexBuffer()
+{
+    const VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, indices.data(), (size_t)bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, // index buffer type
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+
+    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
@@ -786,7 +810,16 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-        vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+        /*
+         *  Driver developers recommend that you also store multiple buffers, like the vertex and index buffer,
+         *  into a single VkBuffer and use offsets in commands like vkCmdBindVertexBuffers. The advantage is
+         *  that your data is more cache friendly in that case, because it's closer together.
+         */
+
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, 
+            VK_INDEX_TYPE_UINT16 /* or VK_INDEX_TYPE_UINT32 for more than 65k vertices*/);
+
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
     }
     vkCmdEndRenderPass(commandBuffer);
 
@@ -1026,6 +1059,9 @@ void Renderer::cleanupSwapChain()
 void Renderer::Cleanup()
 {
     cleanupSwapChain();
+
+    vkDestroyBuffer(device, indexBuffer, nullptr);
+    vkFreeMemory(device, indexBufferMemory, nullptr);
 
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
