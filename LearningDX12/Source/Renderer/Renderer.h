@@ -52,7 +52,10 @@ private:
     void createImageViews();
     void createFramebuffers();
 
+    void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, 
+        VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void createVertexBuffer();
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
 
