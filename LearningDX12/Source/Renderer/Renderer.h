@@ -76,6 +76,9 @@ public:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
+    void createTextureImageView();
+    VkImageView createImageView(VkImage image, VkFormat format);
+    void createTextureSampler();
     void InitVulkan();
     void InitImGui();
 
@@ -130,6 +133,8 @@ private:
     VkDeviceMemory indexBufferMemory;
     VkImage  textureImage;
     VkDeviceMemory textureImageMemory;
+    VkImageView textureImageView;
+    VkSampler textureSampler;
 
     bool enableValidationLayers = true;
 
