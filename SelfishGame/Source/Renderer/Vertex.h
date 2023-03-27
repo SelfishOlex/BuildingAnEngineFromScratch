@@ -14,7 +14,7 @@ struct Vertex
     /*
      * A vertex binding describes at which rate to load data from memory throughout the vertices.
      * It specifies the number of bytes between data entries and whether to move to the next data entry
-     * after each vertex or after each instance.
+     * after each vertex or after each m_instance.
      */
     static VkVertexInputBindingDescription getBindingDescription();
 

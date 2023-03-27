@@ -139,26 +139,26 @@ private:
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
     void createDescriptorSetLayout();
 
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
-    VkImage  textureImage = VK_NULL_HANDLE;
-    VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
-    VkImageView textureImageView = VK_NULL_HANDLE;
-    VkSampler textureSampler = VK_NULL_HANDLE;
+    VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
+    VkBuffer m_indexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
+    VkImage  m_textureImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_textureImageMemory = VK_NULL_HANDLE;
+    VkImageView m_textureImageView = VK_NULL_HANDLE;
+    VkSampler m_textureSampler = VK_NULL_HANDLE;
 
-    VkImage depthImage = VK_NULL_HANDLE;
-    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
-    VkImageView depthImageView = VK_NULL_HANDLE;
+    VkImage m_depthImage = VK_NULL_HANDLE;
+    VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
+    VkImageView m_depthImageView = VK_NULL_HANDLE;
 
-    bool enableValidationLayers = true;
+    bool m_enableValidationLayers = true;
 
-    const std::vector<const char*> validationLayers = {
+    const std::vector<const char*> m_validationLayers = {
         "VK_LAYER_KHRONOS_validation"
     };
 
-    const std::vector<const char*> deviceExtensions = {
+    const std::vector<const char*> m_deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
@@ -166,32 +166,32 @@ private:
 
     GLFWwindow* m_window = nullptr;
     VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkInstance instance = VK_NULL_HANDLE;
-    VkDevice device = VK_NULL_HANDLE;
-    VkQueue graphicsQueue = VK_NULL_HANDLE;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkQueue presentQueue = VK_NULL_HANDLE;
-    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-    std::vector<VkImage> swapChainImages; // no cleanup needed    
-    std::vector<VkImageView> swapChainImageViews;
-    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkInstance m_instance = VK_NULL_HANDLE;
+    VkDevice m_device = VK_NULL_HANDLE;
+    VkQueue m_graphicsQueue = VK_NULL_HANDLE;
+    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
+    VkQueue m_presentQueue = VK_NULL_HANDLE;
+    VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
+    std::vector<VkImage> m_swapChainImages; // no cleanup needed    
+    std::vector<VkImageView> m_swapChainImageViews;
+    VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+    VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+    VkRenderPass m_renderPass = VK_NULL_HANDLE;
+    VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+    std::vector<VkFramebuffer> m_swapChainFramebuffers;
+    VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
-    bool framebufferResized = false;
+    bool m_framebufferResized = false;
 
-    uint32_t queueRenderFamily = 0;
+    uint32_t m_queueRenderFamily = 0;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
     void createUniformBuffers();
 
-    std::vector<FrameObjects> frameObjects;
-    uint32_t currentFrame = 0;
+    std::vector<FrameObjects> m_frameObjects;
+    uint32_t m_currentFrame = 0;
 
     // synchronization objects
     /*VkSemaphore imageAvailableSemaphore;
@@ -199,8 +199,8 @@ private:
     VkFence inFlightFence;*/
 
     // Swap chain related data
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
+    VkFormat m_swapChainImageFormat = VK_FORMAT_UNDEFINED;
+    VkExtent2D m_swapChainExtent{};
 
     std::vector<char> ReadFile(const char* filename);
     VkShaderModule createShaderModule(const std::vector<char>& code);
