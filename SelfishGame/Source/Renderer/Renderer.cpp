@@ -22,6 +22,7 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <stb_image/stb_image.h>
 
 void Renderer::Init(GLFWwindow* window)
 {
@@ -189,7 +190,11 @@ void Renderer::createTextureSampler()
 }
 
 void Renderer::createDepthResources()
-{
+{    
+    vkDestroyImageView(device, depthImageView, nullptr);
+    vkDestroyImage(device, depthImage, nullptr);
+    vkFreeMemory(device, depthImageMemory, nullptr);
+
     const VkFormat depthFormat = findDepthFormat();
 
     createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
@@ -599,7 +604,7 @@ void Renderer::createGraphicsPipeline()
     colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.0f; // Optional
+    colorBlending.blendConstants[0] = 0.0f; // Optional 
     colorBlending.blendConstants[1] = 0.0f; // Optional
     colorBlending.blendConstants[2] = 0.0f; // Optional
     colorBlending.blendConstants[3] = 0.0f; // Optional
@@ -848,10 +853,11 @@ void Renderer::updateUniformBuffer(uint32_t currentImage)
     ubo.model = glm::rotate(glm::mat4(1.0f) /*identity matrix*/,
         time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(14.f, 2.0f, 2.0f), 
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
     ubo.proj = glm::perspective(glm::radians(45.0f),
-        static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
+        static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 100.0f);
 
     /*
      * GLM was originally designed for OpenGL, where the Y coordinate of the clip coordinates is inverted.
@@ -908,6 +914,16 @@ void Renderer::createSwapChain()
 
 void Renderer::createImageViews()
 {
+    /*if (swapChainImageViews.empty() == false)
+    {
+        for (size_t i = 0; i < swapChainImageViews.size(); i++)
+        {
+            vkDestroyImageView(device, swapChainImageViews[i], nullptr);
+        }
+        swapChainImageViews.clear();
+    }*/
+
+    swapChainImageViews.clear();
     swapChainImageViews.resize(swapChainImages.size());
 
     for (size_t i = 0; i < swapChainImages.size(); i++)
@@ -969,15 +985,16 @@ void Renderer::loadModel()
 {
     if (!m_meshLoader)
     {
-        m_meshLoader = std::make_unique<Olex::FbxLoader>("objects/model.fbx");
+        m_meshLoader = std::make_unique<Asset::FbxLoader>("objects/model.fbx");
     }
 }
 
 void Renderer::createVertexBuffer()
 {
-    m_meshLoader->GetMeshes()[0].m_vertices.size(); 
+    auto& vertices = m_meshLoader->GetMeshes()[0].m_vertices;
+    const auto verticesCount = vertices.size();
 
-    const VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+    const VkDeviceSize bufferSize = sizeof(vertices[0]) * verticesCount;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1000,6 +1017,8 @@ void Renderer::createVertexBuffer()
 
 void Renderer::createIndexBuffer()
 {
+    auto& indices = m_meshLoader->GetMeshes()[0].m_indices;
+
     const VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
     VkBuffer stagingBuffer;
@@ -1289,6 +1308,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
             &frameObjects[currentFrame].descriptorSet, 0, nullptr);
 
+        auto& indices = m_meshLoader->GetMeshes()[0].m_indices;
+
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
     }
     vkCmdEndRenderPass(commandBuffer);
@@ -1459,8 +1480,8 @@ void Renderer::RecreateSwapChain()
     vkDeviceWaitIdle(device);
 
     cleanupSwapChain();
-
     createSwapChain();
+
     createImageViews();
     createDepthResources();
     createFramebuffers();
@@ -1571,7 +1592,6 @@ void Renderer::Cleanup()
 
     vkDestroySampler(device, textureSampler, nullptr);
     vkDestroyImageView(device, textureImageView, nullptr);
-
     vkDestroyImage(device, textureImage, nullptr);
     vkFreeMemory(device, textureImageMemory, nullptr);
 

@@ -1,8 +1,6 @@
 
 #pragma once
 
-#include <stb_image/stb_image.h>
-
 #define GLM_FORCE_RADIANS
 
 /*
@@ -11,14 +9,13 @@
  */
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
-#include <FbxLoader.h>
 #include <memory>
-#include <glm/glm.hpp>
-
 #include <optional>
 #include <vector>
 #include <Vertex.h>
+#include <Fbx/FbxLoader.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 #include <glm/mat4x4.hpp>
 #include <vulkan/vulkan.h>
 
@@ -142,18 +139,18 @@ private:
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
     void createDescriptorSetLayout();
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
-    VkImage  textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
+    VkBuffer vertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
+    VkBuffer indexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+    VkImage  textureImage = VK_NULL_HANDLE;
+    VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+    VkImageView textureImageView = VK_NULL_HANDLE;
+    VkSampler textureSampler = VK_NULL_HANDLE;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
+    VkImage depthImage = VK_NULL_HANDLE;
+    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+    VkImageView depthImageView = VK_NULL_HANDLE;
 
     bool enableValidationLayers = true;
 
@@ -165,25 +162,25 @@ private:
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    std::unique_ptr<Olex::FbxLoader> m_meshLoader;
+    std::unique_ptr<Asset::FbxLoader> m_meshLoader;
 
-    GLFWwindow* m_window;
-    VkPhysicalDevice m_physicalDevice;
-    VkInstance instance;
-    VkDevice device;
-    VkQueue graphicsQueue;
-    VkSurfaceKHR surface;
-    VkQueue presentQueue;
-    VkSwapchainKHR swapChain;
+    GLFWwindow* m_window = nullptr;
+    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+    VkInstance instance = VK_NULL_HANDLE;
+    VkDevice device = VK_NULL_HANDLE;
+    VkQueue graphicsQueue = VK_NULL_HANDLE;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    VkQueue presentQueue = VK_NULL_HANDLE;
+    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
     std::vector<VkImage> swapChainImages; // no cleanup needed    
     std::vector<VkImageView> swapChainImageViews;
-    VkDescriptorSetLayout descriptorSetLayout;
-    VkDescriptorPool descriptorPool;
-    VkPipelineLayout pipelineLayout;
-    VkRenderPass renderPass;
-    VkPipeline graphicsPipeline;
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkRenderPass renderPass = VK_NULL_HANDLE;
+    VkPipeline graphicsPipeline = VK_NULL_HANDLE;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkCommandPool commandPool;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
 
     bool framebufferResized = false;
 

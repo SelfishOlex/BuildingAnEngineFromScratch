@@ -22,6 +22,9 @@ add_library(Renderer
     Vertex.cpp
     Vertex.h
     stb_image.cpp
+
+    Fbx/FbxLoader.cpp
+    Fbx/FbxLoader.h
 )
 
 target_include_directories(Renderer PUBLIC
@@ -30,6 +33,7 @@ target_include_directories(Renderer PUBLIC
     "${PROJECT_SOURCE_DIR}/Source/ImGui"
     "${PROJECT_SOURCE_DIR}/Source/Renderer"
     "${PROJECT_SOURCE_DIR}/Source/Renderer/vulkan/include"
+    "${PROJECT_SOURCE_DIR}/3rdparty/FBXSDK_2020.0.1/include"
 )
 
 target_include_directories(Renderer INTERFACE
@@ -50,7 +54,6 @@ target_link_directories(Renderer
 )
 
 target_link_libraries(Renderer PUBLIC 
-    Fbx
     Flecs
     Physics 
     glfw   

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <DirectXMath.h>
 #include <fbxsdk.h>
 #include <vector>
+#include <Vertex.h>
 
-
-namespace Olex
+namespace Asset
 {
     class FbxLoader
     {
@@ -15,7 +14,7 @@ namespace Olex
         struct Mesh
         {
             std::vector<Vertex> m_vertices;
-            std::vector<DirectX::XMINT3> m_indices;
+            std::vector<uint16_t> m_indices;
         };
 
         [[nodiscard]] const std::vector<Mesh>& GetMeshes() const { return m_meshes; }
