@@ -119,19 +119,21 @@ file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders/shader.vert"  DESTINATION ${C
 add_custom_command(
     TARGET shaders
     COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${CMAKE_BINARY_DIR}/shader.frag -o ${CMAKE_BINARY_DIR}/shaders/frag.spv
-    MAIN_DEPENDENCY ${FILE}
+    MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/Resources/shaders/shaders.frag
     COMMENT "Compiling shader.frag..."
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     VERBATIM
+    POST_BUILD
 )
 
 add_custom_command(
     TARGET shaders
     COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${CMAKE_BINARY_DIR}/shader.vert -o ${CMAKE_BINARY_DIR}/shaders/vert.spv
-    MAIN_DEPENDENCY ${FILE}
+    MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/Resources/shaders/shaders.vert
     COMMENT "Compiling shader.vert..."
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     VERBATIM
+    POST_BUILD
 )
 
 add_dependencies(${PROJECT_NAME} shaders)

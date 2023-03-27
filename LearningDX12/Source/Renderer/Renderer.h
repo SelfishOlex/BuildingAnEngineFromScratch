@@ -4,6 +4,7 @@
 #include <optional>
 #include <vector>
 #include <Vertex.h>
+#include <glm/mat4x4.hpp>
 #include <vulkan/vulkan.h>
 
 struct QueueFamilyIndices
@@ -17,6 +18,31 @@ struct SwapChainSupportDetails
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
+};
+
+struct UniformBufferObject
+{
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+};
+
+// Command buffer and synchronization objects per frame in the swap chain
+struct FrameObjects
+{
+    VkCommandBuffer commandBuffer;
+    VkSemaphore imageAvailableSemaphore;
+    VkSemaphore renderFinishedSemaphore;
+    VkFence inFlightFence;
+
+    // Uniform attribute/data stuff
+    VkBuffer uniformBuffer;
+    VkDeviceMemory uniformBuffersMemory;
+    void* uniformBuffersMapped;
+
+    VkDescriptorSet descriptorSet;
+
+    void CleanUp(VkDevice device);
 };
 
 class Renderer
@@ -33,9 +59,19 @@ public:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
+    void createInstance();
+    void createSurface();
+    void pickPhysicalDevice();
+    void createLogicalDevice();
+    void createRenderPass();
+    void createGraphicsPipeline();
+    void createCommandPool();
+    void createCommandBuffers();
+    void createSyncObjects();
     void InitVulkan();
     void InitImGui();
 
+    void updateUniformBuffer(uint32_t currentImage);
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
     bool isDeviceSuitable(VkPhysicalDevice device);
@@ -45,7 +81,9 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamiliesWithSurfaces(VkPhysicalDevice device);
-
+    
+    void createDescriptorPool();
+    void createDescriptorSets();
     void cleanupSwapChain();
     void RecreateSwapChain();
     void createSwapChain();
@@ -57,6 +95,7 @@ private:
     void createVertexBuffer();
     void createIndexBuffer();
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void createDescriptorSetLayout();
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
@@ -94,6 +133,8 @@ private:
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages; // no cleanup needed    
     std::vector<VkImageView> swapChainImageViews;
+    VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorPool descriptorPool;
     VkPipelineLayout pipelineLayout;
     VkRenderPass renderPass;
     VkPipeline graphicsPipeline;
@@ -106,14 +147,7 @@ private:
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
-    // Command buffer and synchronization objects per frame in the swap chain
-    struct FrameObjects
-    {
-        VkCommandBuffer commandBuffer;
-        VkSemaphore imageAvailableSemaphore;
-        VkSemaphore renderFinishedSemaphore;
-        VkFence inFlightFence;
-    };
+    void createUniformBuffers();
 
     std::vector<FrameObjects> frameObjects;
     uint32_t currentFrame = 0;
