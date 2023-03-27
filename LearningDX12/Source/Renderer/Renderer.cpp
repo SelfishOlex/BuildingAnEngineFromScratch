@@ -54,6 +54,9 @@ void Renderer::InitVulkan()
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
+
+    loadModel();
+
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -962,8 +965,18 @@ void Renderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemor
     vkBindBufferMemory(device, buffer, bufferMemory, 0);
 }
 
+void Renderer::loadModel()
+{
+    if (!m_meshLoader)
+    {
+        m_meshLoader = std::make_unique<Olex::FbxLoader>("objects/model.fbx");
+    }
+}
+
 void Renderer::createVertexBuffer()
 {
+    m_meshLoader->GetMeshes()[0].m_vertices.size();
+
     const VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
     VkBuffer stagingBuffer;
