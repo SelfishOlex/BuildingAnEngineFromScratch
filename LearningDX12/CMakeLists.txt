@@ -101,7 +101,7 @@ set(PHYSX5_BUILD_TYPE "checked")
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/textures)
 
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/model.fbx"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY "${PROJECT_SOURCE_DIR}/Resources/texture.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/textures)
+file(COPY "${PROJECT_SOURCE_DIR}/Resources/textures/texture.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/textures)
 
 # Build GLSL shaders
 add_custom_target(shaders)
@@ -115,12 +115,9 @@ source_group("Selfish Shaders" FILES ${GLSL_SHADER_FILES})
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 
-file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders/shader.frag"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY "${PROJECT_SOURCE_DIR}/Resources/shaders/shader.vert"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
 add_custom_command(
     TARGET shaders
-    COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${CMAKE_BINARY_DIR}/shader.frag -o ${CMAKE_BINARY_DIR}/shaders/frag.spv
+    COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${PROJECT_SOURCE_DIR}/Resources/shaders/shader.frag -o ${CMAKE_BINARY_DIR}/shaders/frag.spv
     MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/Resources/shaders/shaders.frag
     COMMENT "Compiling shader.frag..."
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -130,7 +127,7 @@ add_custom_command(
 
 add_custom_command(
     TARGET shaders
-    COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${CMAKE_BINARY_DIR}/shader.vert -o ${CMAKE_BINARY_DIR}/shaders/vert.spv
+    COMMAND ${CMAKE_BINARY_DIR}/debug/glslangValidator.exe -V ${PROJECT_SOURCE_DIR}/Resources/shaders/shader.vert -o ${CMAKE_BINARY_DIR}/shaders/vert.spv
     MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/Resources/shaders/shaders.vert
     COMMENT "Compiling shader.vert..."
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

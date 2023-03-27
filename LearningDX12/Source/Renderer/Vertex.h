@@ -10,6 +10,7 @@ struct Vertex
 {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 texCoordinates;
 
     /*
      * A vertex binding describes at which rate to load data from memory throughout the vertices.
@@ -18,6 +19,6 @@ struct Vertex
      */
     static VkVertexInputBindingDescription getBindingDescription();
 
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
 };
 
