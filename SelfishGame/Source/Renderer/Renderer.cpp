@@ -709,7 +709,7 @@ void Renderer::CreateTextureImage()
     // texture -> staging buffer -> copy -> local GPU buffer
 
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load("textures/dollarsign.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load("textures/golden_surface_albedo.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     assert(pixels);
     const VkDeviceSize imageSize = texWidth * texHeight * 4;
 

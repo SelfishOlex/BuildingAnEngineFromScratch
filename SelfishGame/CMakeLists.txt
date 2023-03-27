@@ -103,6 +103,7 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/textures)
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/objects/model.fbx"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/objects)
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/textures/texture.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/textures)
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/textures/dollarsign.png"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/textures)
+file(COPY "${PROJECT_SOURCE_DIR}/Resources/textures/golden_surface_albedo.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/textures)
 
 # Build GLSL shaders
 add_custom_target(shaders)
