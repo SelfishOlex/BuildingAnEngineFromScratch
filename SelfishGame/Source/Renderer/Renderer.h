@@ -12,7 +12,6 @@
 #include <memory>
 #include <optional>
 #include <vector>
-#include <Vertex.h>
 #include <Fbx/FbxLoader.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -27,7 +26,7 @@ struct QueueFamilyIndices
 
 struct SwapChainSupportDetails
 {
-    VkSurfaceCapabilitiesKHR capabilities;
+    VkSurfaceCapabilitiesKHR capabilities{};
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
@@ -79,65 +78,65 @@ public:
 
     void OnExitMainLoop();
 
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+    static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
-    void createTextureImageView();
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-    void createTextureSampler();
-    void createDepthResources();
-    bool hasStencilComponent(VkFormat format);
-    VkFormat findDepthFormat();
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
+    void CreateTextureImageView();
+    VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    void CreateTextureSampler();
+    void CreateDepthResources();
+    bool HasStencilComponent(VkFormat format);
+    VkFormat FindDepthFormat();
+    VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
                                  VkFormatFeatureFlags features);
-    void loadModel();
+    void LoadModel();
     void InitVulkan();
     void InitImGui();
 
-    void createInstance();
-    void createSurface();
-    void pickPhysicalDevice();
-    void createLogicalDevice();
-    void createRenderPass();
-    void createGraphicsPipeline();
-    void createCommandPool();
-    void createCommandBuffers();
-    void createSyncObjects();
+    void CreateInstance();
+    void CreateSurface();
+    void PickPhysicalDevice();
+    void CreateLogicalDevice();
+    void CreateRenderPass();
+    void CreateGraphicsPipeline();
+    void CreateCommandPool();
+    void CreateCommandBuffers();
+    void CreateSyncObjects();
 
-    void createTextureImage();
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+    void CreateTextureImage();
+    void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-    VkCommandBuffer beginSingleTimeCommands();
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    VkCommandBuffer BeginSingleTimeCommands();
+    void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 
 
-    void updateUniformBuffer(uint32_t currentImage);
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    void UpdateUniformBuffer(uint32_t currentImage);
+    void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
-    bool isDeviceSuitable(VkPhysicalDevice device);
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamiliesWithSurfaces(VkPhysicalDevice device);
+    bool IsDeviceSuitable(VkPhysicalDevice device);
+    bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+    VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
+    SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+    QueueFamilyIndices FindQueueFamiliesWithSurfaces(VkPhysicalDevice device);
 
-    void createDescriptorPool();
-    void createDescriptorSets();
-    void cleanupSwapChain();
+    void CreateDescriptorPool();
+    void CreateDescriptorSets();
+    void CleanupSwapChain();
     void RecreateSwapChain();
-    void createSwapChain();
-    void createImageViews();
-    void createFramebuffers();
+    void CreateSwapChain();
+    void CreateImageViews();
+    void CreateFramebuffers();
 
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    void createVertexBuffer();
-    void createIndexBuffer();
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-    void createDescriptorSetLayout();
+    void CreateVertexBuffer();
+    void CreateIndexBuffer();
+    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void TransitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+    void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+    void CreateDescriptorSetLayout();
 
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
@@ -188,7 +187,7 @@ private:
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
-    void createUniformBuffers();
+    void CreateUniformBuffers();
 
     std::vector<FrameObjects> m_frameObjects;
     uint32_t m_currentFrame = 0;
@@ -203,6 +202,6 @@ private:
     VkExtent2D m_swapChainExtent{};
 
     std::vector<char> ReadFile(const char* filename);
-    VkShaderModule createShaderModule(const std::vector<char>& code);
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    VkShaderModule CreateShaderModule(const std::vector<char>& code);
+    uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 };
