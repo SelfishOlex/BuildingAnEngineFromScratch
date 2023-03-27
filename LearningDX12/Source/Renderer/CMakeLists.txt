@@ -21,6 +21,7 @@ add_library(Renderer
     Renderer.h
     Vertex.cpp
     Vertex.h
+    stb_image.cpp
 )
 
 target_include_directories(Renderer PUBLIC

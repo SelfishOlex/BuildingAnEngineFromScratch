@@ -98,8 +98,10 @@ set(PHYSX5_BUILD_TYPE "checked")
     file(COPY_FILE "${PHYSX5_SHARED_PATH}/${PHYSX5_BUILD_TYPE}/PhysXCooking_64.dll"     "${CMAKE_CURRENT_BINARY_DIR}/PhysXCooking_64.dll" )
     file(COPY_FILE "${PHYSX5_SHARED_PATH}/${PHYSX5_BUILD_TYPE}/PhysXFoundation_64.dll"  "${CMAKE_CURRENT_BINARY_DIR}/PhysXFoundation_64.dll" )
 
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/textures)
+
 file(COPY "${PROJECT_SOURCE_DIR}/Resources/model.fbx"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY "${PROJECT_SOURCE_DIR}/Resources/texture.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY "${PROJECT_SOURCE_DIR}/Resources/texture.jpg"  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/textures)
 
 # Build GLSL shaders
 add_custom_target(shaders)

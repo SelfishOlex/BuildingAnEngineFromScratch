@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <stb_image/stb_image.h>
+
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
@@ -74,6 +76,9 @@ public:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
+    void InitVulkan();
+    void InitImGui();
+
     void createInstance();
     void createSurface();
     void pickPhysicalDevice();
@@ -83,8 +88,13 @@ private:
     void createCommandPool();
     void createCommandBuffers();
     void createSyncObjects();
-    void InitVulkan();
-    void InitImGui();
+
+    void createTextureImage();
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+                     VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    VkCommandBuffer beginSingleTimeCommands();
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
 
     void updateUniformBuffer(uint32_t currentImage);
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
@@ -96,7 +106,7 @@ private:
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window);
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
     QueueFamilyIndices findQueueFamiliesWithSurfaces(VkPhysicalDevice device);
-    
+
     void createDescriptorPool();
     void createDescriptorSets();
     void cleanupSwapChain();
@@ -110,11 +120,16 @@ private:
     void createVertexBuffer();
     void createIndexBuffer();
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
     void createDescriptorSetLayout();
+
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
+    VkImage  textureImage;
+    VkDeviceMemory textureImageMemory;
 
     bool enableValidationLayers = true;
 
