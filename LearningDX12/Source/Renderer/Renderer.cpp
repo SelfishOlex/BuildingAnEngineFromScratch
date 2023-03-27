@@ -14,6 +14,8 @@
 #include <iostream>
 #include <set>
 #include <vector>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
 
 
 void Renderer::DrawFrame()
@@ -29,7 +31,7 @@ void Renderer::DrawFrame()
 
     auto& frameObject = frameObjects[currentFrame];
 
-    vkWaitForFences(device, 1, &frameObject.inFlightFence, VK_TRUE, UINT64_MAX);    
+    vkWaitForFences(device, 1, &frameObject.inFlightFence, VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, frameObject.imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
@@ -106,12 +108,17 @@ void Renderer::framebufferResizeCallback(GLFWwindow* window, int width, int heig
     }
 }
 
-void Renderer::InitVulkan(GLFWwindow* window)
+void Renderer::Init(GLFWwindow* window)
 {
     m_window = window;
+    InitVulkan();
+    //InitImGui();
+}
 
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+void Renderer::InitVulkan()
+{
+    glfwSetWindowUserPointer(m_window, this);
+    glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 
     //////////////////////// Create vulkan instance ////////////////////////////////////
     VkApplicationInfo appInfo{};
@@ -169,7 +176,7 @@ void Renderer::InitVulkan(GLFWwindow* window)
     }
 
     ////////////////////////////// Create surface //////////////////////////////
-    assert(glfwCreateWindowSurface(instance, window, nullptr, &surface) == VK_SUCCESS);
+    assert(glfwCreateWindowSurface(instance, m_window, nullptr, &surface) == VK_SUCCESS);
 
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -210,6 +217,11 @@ void Renderer::InitVulkan(GLFWwindow* window)
     {
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::vector<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+        if (indices.graphicsFamily)
+        {
+            queueRenderFamily = *indices.graphicsFamily;
+        }
 
         float queuePriority = 1.0f;
         for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -304,12 +316,15 @@ void Renderer::InitVulkan(GLFWwindow* window)
     dynamicState.pDynamicStates = dynamicStates.data();
 
     // vertex input
+    auto bindingDescription = Vertex::getBindingDescription();
+    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexBindingDescriptionCount = 0;
-    vertexInputInfo.pVertexBindingDescriptions = nullptr; // Optional
-    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputInfo.pVertexAttributeDescriptions = nullptr; // Optional
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription; // Optional
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data(); // Optional
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -472,6 +487,9 @@ void Renderer::InitVulkan(GLFWwindow* window)
 
     assert(vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) == VK_SUCCESS);
 
+    ////////////////////////////// Create vertex buffers //////////////////////////////
+    createVertexBuffer();
+
     ////////////////////////////// Create command buffer //////////////////////////////
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -500,6 +518,38 @@ void Renderer::InitVulkan(GLFWwindow* window)
         assert(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frameObjects[i].renderFinishedSemaphore) == VK_SUCCESS);
         assert(vkCreateFence(device, &fenceInfo, nullptr, &frameObjects[i].inFlightFence) == VK_SUCCESS);
     }
+}
+
+void Renderer::InitImGui()
+{
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForVulkan(m_window, true);
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = instance;
+    init_info.PhysicalDevice = m_physicalDevice;
+    init_info.Device = device;
+    init_info.QueueFamily = queueRenderFamily;
+    init_info.Queue = graphicsQueue;
+    init_info.PipelineCache = VK_NULL_HANDLE;
+    init_info.DescriptorPool = nullptr;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = nullptr;
+    init_info.CheckVkResultFn = nullptr;
+    ImGui_ImplVulkan_Init(&init_info, renderPass);
 }
 
 void Renderer::createSwapChain()
@@ -597,6 +647,38 @@ void Renderer::createFramebuffers()
     }
 }
 
+void Renderer::createVertexBuffer()
+{
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof(vertices[0]) * vertices.size();
+    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // only used by graphics queue
+
+    assert(vkCreateBuffer(device, &bufferInfo, nullptr, &vertexBuffer) == VK_SUCCESS);
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequirements);
+
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    assert(vkAllocateMemory(device, &allocInfo, nullptr, &vertexBufferMemory) == VK_SUCCESS);
+
+    vkBindBufferMemory(device, vertexBuffer, vertexBufferMemory, 0);
+
+    void* data;
+    vkMapMemory(device, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+    memcpy(data, vertices.data(), bufferInfo.size);
+    vkUnmapMemory(device, vertexBufferMemory);
+}
+
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     vkResetCommandBuffer(commandBuffer, 0);
@@ -641,7 +723,11 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
         scissor.extent = swapChainExtent;
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        VkBuffer vertexBuffers[] = { vertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+        vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
     }
     vkCmdEndRenderPass(commandBuffer);
 
@@ -803,8 +889,7 @@ void Renderer::RecreateSwapChain()
     {
         glfwGetFramebufferSize(m_window, &width, &height);
         glfwWaitEvents();
-    }
-    while (width == 0 || height == 0);
+    } while (width == 0 || height == 0);
 
     vkDeviceWaitIdle(device);
 
@@ -847,6 +932,23 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
     return shaderModule;
 }
 
+uint32_t Renderer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+    {
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    assert(false);
+    return 0;
+}
+
 void Renderer::cleanupSwapChain()
 {
     for (size_t i = 0; i < swapChainFramebuffers.size(); i++)
@@ -866,6 +968,9 @@ void Renderer::Cleanup()
 {
     cleanupSwapChain();
 
+    vkDestroyBuffer(device, vertexBuffer, nullptr);
+    vkFreeMemory(device, vertexBufferMemory, nullptr);
+
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroySemaphore(device, frameObjects[i].imageAvailableSemaphore, nullptr);
@@ -874,23 +979,9 @@ void Renderer::Cleanup()
     }
 
     vkDestroyCommandPool(device, commandPool, nullptr); // command buffers are freed by the pool
-
-    /*for (auto framebuffer : swapChainFramebuffers)
-    {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-    }*/
-
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
-
-    /*for (auto imageView : swapChainImageViews)
-    {
-        vkDestroyImageView(device, imageView, nullptr);
-    }*/
-
-    //vkDestroySwapchainKHR(device, swapChain, nullptr);
-
     vkDestroySurfaceKHR(instance, surface, nullptr);
     vkDestroyDevice(device, nullptr);
     vkDestroyInstance(instance, nullptr);

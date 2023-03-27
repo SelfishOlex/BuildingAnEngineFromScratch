@@ -19,6 +19,8 @@ add_subdirectory(glslang-12.1.0)
 add_library(Renderer
     Renderer.cpp
     Renderer.h
+    Vertex.cpp
+    Vertex.h
 )
 
 target_include_directories(Renderer PUBLIC

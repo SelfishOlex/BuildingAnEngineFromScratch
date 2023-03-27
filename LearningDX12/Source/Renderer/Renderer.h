@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <vector>
+#include <Vertex.h>
 #include <vulkan/vulkan.h>
 
 struct QueueFamilyIndices
@@ -21,7 +22,7 @@ struct SwapChainSupportDetails
 class Renderer
 {
 public:
-    void InitVulkan(GLFWwindow* window);
+    void Init(GLFWwindow* window);
 
     void Cleanup();
 
@@ -32,6 +33,9 @@ public:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
+    void InitVulkan();
+    void InitImGui();
+
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
     bool isDeviceSuitable(VkPhysicalDevice device);
@@ -48,6 +52,10 @@ private:
     void createImageViews();
     void createFramebuffers();
 
+    void createVertexBuffer();
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+
     bool enableValidationLayers = true;
 
     const std::vector<const char*> validationLayers = {
@@ -57,7 +65,14 @@ private:
     const std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
-    
+
+    const std::vector<Vertex> vertices =
+    {
+        {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 0.0f, 1.0f}}
+    };
+
     GLFWwindow* m_window;
     VkPhysicalDevice m_physicalDevice;
     VkInstance instance;
@@ -75,6 +90,8 @@ private:
     VkCommandPool commandPool;
 
     bool framebufferResized = false;
+
+    uint32_t queueRenderFamily = 0;
 
     const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -101,4 +118,5 @@ private:
 
     std::vector<char> ReadFile(const char* filename);
     VkShaderModule createShaderModule(const std::vector<char>& code);
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 };
