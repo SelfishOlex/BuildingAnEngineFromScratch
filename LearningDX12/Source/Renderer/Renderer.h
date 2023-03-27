@@ -1,9 +1,13 @@
 
 #pragma once
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+
 #include <optional>
 #include <vector>
 #include <Vertex.h>
+#include <GLFW/glfw3.h>
 #include <glm/mat4x4.hpp>
 #include <vulkan/vulkan.h>
 
@@ -20,11 +24,22 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
+/*
+ * Scalars have to be aligned by N (= 4 bytes given 32 bit floats).
+ * A vec2 must be aligned by 2N (= 8 bytes)
+ * A vec3 or vec4 must be aligned by 4N (= 16 bytes)
+ * A nested structure must be aligned by the base alignment of its members rounded up to a multiple of 16.
+ * A mat4 matrix must have the same alignment as a vec4.
+ */
 struct UniformBufferObject
 {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
+    // Example, if a vec2 is added at the beginning
+    // glm::vec2 foo;
+    // alignas(16) glm::mat4 model;
+
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
 };
 
 // Command buffer and synchronization objects per frame in the swap chain
