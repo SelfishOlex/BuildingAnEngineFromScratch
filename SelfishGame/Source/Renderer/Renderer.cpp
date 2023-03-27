@@ -975,7 +975,7 @@ void Renderer::loadModel()
 
 void Renderer::createVertexBuffer()
 {
-    m_meshLoader->GetMeshes()[0].m_vertices.size();
+    m_meshLoader->GetMeshes()[0].m_vertices.size(); 
 
     const VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 

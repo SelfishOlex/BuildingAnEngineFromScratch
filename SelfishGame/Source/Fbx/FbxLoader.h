@@ -4,6 +4,7 @@
 #include <fbxsdk.h>
 #include <vector>
 
+
 namespace Olex
 {
     class FbxLoader
@@ -13,14 +14,7 @@ namespace Olex
 
         struct Mesh
         {
-            struct VertexInfo
-            {
-                DirectX::XMFLOAT3 m_position;
-                DirectX::XMFLOAT2 m_uv;
-                DirectX::XMFLOAT3 m_normal;
-            };
-
-            std::vector<VertexInfo> m_vertices;
+            std::vector<Vertex> m_vertices;
             std::vector<DirectX::XMINT3> m_indices;
         };
 
@@ -31,7 +25,7 @@ namespace Olex
         Mesh ReadMesh( FbxNodeAttribute* pAttribute );
 
         /* Tab character ("\t") counter */
-        int numTabs = 0;
+        int m_numTabs = 0;
 
         void PrintNode( FbxNode* pNode );
         void PrintTabs();

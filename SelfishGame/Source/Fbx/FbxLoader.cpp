@@ -76,7 +76,7 @@ namespace Olex
             scaling[0], scaling[1], scaling[2]
         );
 
-        numTabs++;
+        m_numTabs++;
 
         // Print the node's attributes.
         for ( int i = 0; i < pNode->GetNodeAttributeCount(); i++ )
@@ -86,14 +86,14 @@ namespace Olex
         for ( int j = 0; j < pNode->GetChildCount(); j++ )
             PrintNode( pNode->GetChild( j ) );
 
-        numTabs--;
+        m_numTabs--;
         PrintTabs();
         Log::Message( "</node>\n" );
     }
 
     void FbxLoader::PrintTabs()
     {
-        for ( int i = 0; i < numTabs; i++ )
+        for ( int i = 0; i < m_numTabs; i++ )
             Log::Message( "\t" );
     }
 
