@@ -25,6 +25,8 @@ void Renderer::Init(GLFWwindow* window)
 {
     m_window = window;
     InitVulkan();
+    InitImGui();
+    InitImGuiResources();
 }
 
 void Renderer::InitVulkan()
@@ -47,9 +49,6 @@ void Renderer::InitVulkan()
     CreateDepthResources();
 
     CreateFramebuffers(); // must come after depth resources are created
-
-    InitImGui();
-    InitImGuiResources();
 
     m_objectTexture.CreateFromTextureFile(*this, "textures/golden_surface_albedo.jpg");
     CreateTextureSampler();
@@ -784,39 +783,38 @@ void Renderer::InitImGui()
 // Initialize all Vulkan resources used by the ui
 void Renderer::InitImGuiResources()
 {
-    ImGuiIO& io = ImGui::GetIO();
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForVulkan(m_window, true);
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = m_instance;
+    init_info.PhysicalDevice = m_physicalDevice;
+    init_info.Device = m_device;
 
-    // Create font texture
-    unsigned char* fontData;
-    int texWidth, texHeight;
-    io.Fonts->GetTexDataAsRGBA32(&fontData, &texWidth, &texHeight);    
+    const auto families = FindQueueFamiliesWithSurfaces(m_physicalDevice);
+    init_info.QueueFamily = families.graphicsFamily.value();
 
-    m_imGuiFontTexture.CreateFromImageData(*this, fontData, texWidth, texHeight);    
+    init_info.Queue = m_graphicsQueue;
+    init_info.PipelineCache = VK_NULL_HANDLE;
+    init_info.DescriptorPool = m_descriptorPool;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = nullptr;
+    init_info.CheckVkResultFn = nullptr;
+    ImGui_ImplVulkan_Init(&init_info, m_renderPass);
 
-    // Font texture Sampler
+    // Upload Fonts
+    {
+        // Use any command queue
+        const VkCommandBuffer commandBuffer = BeginSingleTimeCommands();
 
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
 
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    samplerInfo.maxAnisotropy = 0; // properties.limits.maxSamplerAnisotropy;
+        EndSingleTimeCommands(commandBuffer);
 
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE; // the texels are addressed using the [0, 1) range on all axes
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-
-    assert(vkCreateSampler(m_device, &samplerInfo, nullptr, &m_imGuiFontSampler) == VK_SUCCESS);
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
 }
 
 
@@ -1022,19 +1020,44 @@ void Renderer::CreateDescriptorPool()
 {
     // For uniform buffer and a texture sampler
 
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) + 1 /* for ImGui runtime texture*/;
+    //std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    //poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    //poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    //poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) + 1 /* for ImGui runtime texture*/;
 
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    //VkDescriptorPoolCreateInfo poolInfo{};
+    //poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    //poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    //poolInfo.pPoolSizes = poolSizes.data();
+    //poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
-    assert(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
+    //assert(vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) == VK_SUCCESS);
+
+    constexpr int maxCount = 10;
+
+    VkDescriptorPoolSize pool_sizes[] =
+    {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, maxCount },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxCount },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, maxCount },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, maxCount },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, maxCount },
+        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, maxCount },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, maxCount },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, maxCount },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, maxCount },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, maxCount },
+        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, maxCount }
+    };
+    VkDescriptorPoolCreateInfo pool_info = {};
+    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
+    pool_info.poolSizeCount = static_cast<uint32_t>(IM_ARRAYSIZE(pool_sizes));
+    pool_info.pPoolSizes = pool_sizes;
+    const VkResult err = vkCreateDescriptorPool(m_device, &pool_info, nullptr, &m_descriptorPool);
+    assert(err == VK_SUCCESS);
 }
 
 void Renderer::CreateDescriptorSets()
@@ -1061,7 +1084,7 @@ void Renderer::CreateDescriptorSets()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = descriptorSets[i];
@@ -1084,20 +1107,6 @@ void Renderer::CreateDescriptorSets()
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
-
-        // add imgui font texture reference
-        VkDescriptorImageInfo imGuiImageInfo{};
-        imGuiImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imGuiImageInfo.imageView = m_imGuiFontTexture.m_view;
-        imGuiImageInfo.sampler = m_imGuiFontSampler;
-
-        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2].dstSet = descriptorSets[i];
-        descriptorWrites[2].dstBinding = 2;
-        descriptorWrites[2].dstArrayElement = 0;
-        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[2].descriptorCount = 1;
-        descriptorWrites[2].pImageInfo = &imGuiImageInfo;
 
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -1228,7 +1237,7 @@ void Renderer::CreateDescriptorSetLayout()
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; // to be used in fragment shaders
-    
+
     VkDescriptorSetLayoutBinding imGuiSamplerLayoutBinding{};
     imGuiSamplerLayoutBinding.binding = 2;
     imGuiSamplerLayoutBinding.descriptorCount = 1;
@@ -1312,6 +1321,29 @@ void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t image
         auto& indices = m_meshLoader->GetMeshes()[0].m_indices;
 
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+
+
+        // ImGui
+        {
+            // Start the Dear ImGui frame
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            ImGui::ShowDemoWindow();
+
+            
+
+            // Rendering
+            ImGui::Render();
+            ImDrawData* draw_data = ImGui::GetDrawData();
+            const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+            if (!is_minimized)
+            {
+                // Record dear imgui primitives into command buffer
+                ImGui_ImplVulkan_RenderDrawData(draw_data, commandBuffer);
+            }
+        }
     }
     vkCmdEndRenderPass(commandBuffer);
 
@@ -1585,15 +1617,16 @@ void FrameObjects::CleanUp(VkDevice device)
 
 void Renderer::Cleanup()
 {
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     CleanupSwapChain();
 
     m_depth.Release(*this);
 
     vkDestroySampler(m_device, m_textureSampler, nullptr);
     m_objectTexture.Release(*this);
-    
-    vkDestroySampler(m_device, m_imGuiFontSampler, nullptr);
-    m_imGuiFontTexture.Release(*this);
 
     vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr); // cleans up descriptor sets
     vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);

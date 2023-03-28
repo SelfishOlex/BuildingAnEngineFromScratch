@@ -149,10 +149,6 @@ private:
     GpuImage m_objectTexture;
     VkSampler m_textureSampler = VK_NULL_HANDLE;
 
-    GpuImage m_imGuiFontTexture;
-    VkSampler m_imGuiFontSampler = VK_NULL_HANDLE;
-
-
     GpuImage m_depth;
 
 
