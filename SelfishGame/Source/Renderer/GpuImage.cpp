@@ -7,6 +7,16 @@
 #include <stb_image/stb_image.h>
 
 
+void GpuImage::CreateDepthImage(Renderer& renderer, VkExtent2D swapChainExtent)
+{
+    const VkFormat depthFormat = renderer.FindDepthFormat();
+
+    renderer.CreateImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_image, m_deviceMemory);
+
+    m_view = CreateImageView(renderer, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
 void GpuImage::CreateFromTextureFile(Renderer& renderer, const char* texturePath)
 {
     // texture -> staging buffer -> copy -> local GPU buffer

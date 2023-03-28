@@ -8,6 +8,8 @@ class Renderer;
 class GpuImage
 {
 public:
+    void CreateDepthImage(Renderer& renderer, VkExtent2D swapChainExtent);
+
     void CreateFromTextureFile(Renderer& renderer, const char* texturePath);
     void Release(Renderer& renderer);
 

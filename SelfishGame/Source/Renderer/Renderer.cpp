@@ -188,16 +188,8 @@ void Renderer::CreateTextureSampler()
 
 void Renderer::CreateDepthResources()
 {
-    vkDestroyImageView(m_device, m_depthImageView, nullptr);
-    vkDestroyImage(m_device, m_depthImage, nullptr);
-    vkFreeMemory(m_device, m_depthImageMemory, nullptr);
-
-    const VkFormat depthFormat = FindDepthFormat();
-
-    CreateImage(m_swapChainExtent.width, m_swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
-
-    m_depthImageView = CreateImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    m_depth.Release(*this);
+    m_depth.CreateDepthImage(*this, m_swapChainExtent);
 }
 
 bool Renderer::HasStencilComponent(VkFormat format)
@@ -781,11 +773,11 @@ void Renderer::InitImGui()
     io.DisplaySize = ImVec2(static_cast<float>(m_swapChainExtent.width), static_cast<float>(m_swapChainExtent.height));
     io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-    initImGuiResources(m_renderPass, m_graphicsQueue, "shaders");
+    InitImGuiResources(m_renderPass, m_graphicsQueue, "shaders");
 }
 
 // Initialize all Vulkan resources used by the ui
-void Renderer::initImGuiResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string& shadersPath)
+void Renderer::InitImGuiResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string& shadersPath)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -1125,7 +1117,7 @@ void Renderer::CreateFramebuffers()
         std::array<VkImageView, 2> attachments =
         {
             m_swapChainImageViews[i],
-            m_depthImageView
+            m_depth.m_view
         };
 
         VkFramebufferCreateInfo framebufferInfo{};
@@ -1770,9 +1762,7 @@ void Renderer::Cleanup()
 {
     CleanupSwapChain();
 
-    vkDestroyImageView(m_device, m_depthImageView, nullptr);
-    vkDestroyImage(m_device, m_depthImage, nullptr);
-    vkFreeMemory(m_device, m_depthImageMemory, nullptr);
+    m_depth.Release(*this);
 
     vkDestroySampler(m_device, m_textureSampler, nullptr);
 

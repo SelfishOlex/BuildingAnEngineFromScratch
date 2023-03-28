@@ -83,6 +83,10 @@ public:
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
+    void InitVulkan();
+    void InitImGui();
+    void InitImGuiResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string& shadersPath);
+
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
     void CreateTextureSampler();
     void CreateDepthResources();
@@ -91,9 +95,6 @@ private:
     VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
                                  VkFormatFeatureFlags features);
     void LoadModel();
-    void InitVulkan();
-    void InitImGui();
-    void initImGuiResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string& shadersPath);
 
     void CreateInstance();
     void CreateSurface();
@@ -105,7 +106,6 @@ private:
     void CreateCommandBuffers();
     void CreateSyncObjects();
 
-    void CreateTextureImage();
     void CreateImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
         VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
     VkCommandBuffer BeginSingleTimeCommands();
@@ -150,9 +150,7 @@ private:
 
     VkSampler m_textureSampler = VK_NULL_HANDLE;
 
-    VkImage m_depthImage = VK_NULL_HANDLE;
-    VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
-    VkImageView m_depthImageView = VK_NULL_HANDLE;
+    GpuImage m_depth;
 
     bool m_enableValidationLayers = true;
 
