@@ -85,7 +85,7 @@ public:
 private:
     void InitVulkan();
     void InitImGui();
-    void InitImGuiResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string& shadersPath);
+    void InitImGuiResources();
 
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
     void CreateTextureSampler();
@@ -147,10 +147,14 @@ private:
     VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
 
     GpuImage m_objectTexture;
-
     VkSampler m_textureSampler = VK_NULL_HANDLE;
 
+    GpuImage m_imGuiFontTexture;
+    VkSampler m_imGuiFontSampler = VK_NULL_HANDLE;
+
+
     GpuImage m_depth;
+
 
     bool m_enableValidationLayers = true;
 
