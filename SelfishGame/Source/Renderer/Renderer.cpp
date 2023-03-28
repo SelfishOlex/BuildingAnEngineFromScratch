@@ -876,6 +876,7 @@ void Renderer::InitImGuiResources(VkRenderPass renderPass, VkQueue copyQueue, co
         &bufferCopyRegion
     );
 
+    /*
     // Prepare for shader read
     vks::tools::setImageLayout(
         copyCmd,

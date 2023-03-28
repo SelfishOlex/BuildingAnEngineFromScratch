@@ -10,6 +10,8 @@ class GpuImage
 public:
     void CreateDepthImage(Renderer& renderer, VkExtent2D swapChainExtent);
 
+    void CreateFromImageData(Renderer& renderer, const unsigned char* imageData, int width, int height);
+
     void CreateFromTextureFile(Renderer& renderer, const char* texturePath);
     void Release(Renderer& renderer);
 

@@ -17,14 +17,9 @@ void GpuImage::CreateDepthImage(Renderer& renderer, VkExtent2D swapChainExtent)
     m_view = CreateImageView(renderer, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void GpuImage::CreateFromTextureFile(Renderer& renderer, const char* texturePath)
+void GpuImage::CreateFromImageData(Renderer& renderer, const unsigned char* imageData, int width, int height)
 {
-    // texture -> staging buffer -> copy -> local GPU buffer
-
-    int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(texturePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-    assert(pixels);
-    const VkDeviceSize imageSize = texWidth * texHeight * 4;
+    const VkDeviceSize imageSize = width * height * 4;
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -34,20 +29,18 @@ void GpuImage::CreateFromTextureFile(Renderer& renderer, const char* texturePath
 
     void* data;
     vkMapMemory(renderer.m_device, stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, imageSize);
+    memcpy(data, imageData, imageSize);
     vkUnmapMemory(renderer.m_device, stagingBufferMemory);
-
-    stbi_image_free(pixels);
 
     // create a texture image in GPU memory
 
-    renderer.CreateImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+    renderer.CreateImage(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT /*as a destination for copy from staging buffer*/ | VK_IMAGE_USAGE_SAMPLED_BIT /*as a sampler for shaders*/,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT /*Bind to local GPU buffer*/, m_image, m_deviceMemory);
 
     renderer.TransitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-    renderer.CopyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    renderer.CopyBufferToImage(stagingBuffer, m_image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
     renderer.TransitionImageLayout(m_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -55,6 +48,19 @@ void GpuImage::CreateFromTextureFile(Renderer& renderer, const char* texturePath
     vkFreeMemory(renderer.m_device, stagingBufferMemory, nullptr);
 
     m_view = CreateImageView(renderer, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void GpuImage::CreateFromTextureFile(Renderer& renderer, const char* texturePath)
+{
+    // texture -> staging buffer -> copy -> local GPU buffer
+
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(texturePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    assert(pixels);
+
+    CreateFromImageData(renderer, pixels, texWidth, texHeight);
+    
+    stbi_image_free(pixels);
 }
 
 void GpuImage::Release(Renderer& renderer)
