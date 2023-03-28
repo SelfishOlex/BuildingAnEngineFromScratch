@@ -17,6 +17,9 @@ add_subdirectory(glslang-12.1.0)
 
 
 add_library(Renderer
+    GpuImage.cpp
+    GpuImage.h
+
     Renderer.cpp
     Renderer.h
     Vertex.cpp

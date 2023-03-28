@@ -9,6 +9,7 @@
  */
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
+#include <GpuImage.h>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -69,6 +70,7 @@ struct FrameObjects
 
 class Renderer
 {
+    friend class GpuImage;
 public:
     void Init(GLFWwindow* window);
 
@@ -81,7 +83,6 @@ public:
     static void FramebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 private:
-    void CreateTextureImageView();
     VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
     void CreateTextureSampler();
     void CreateDepthResources();
@@ -92,6 +93,7 @@ private:
     void LoadModel();
     void InitVulkan();
     void InitImGui();
+    void initImGuiResources(VkRenderPass renderPass, VkQueue copyQueue, const std::string& shadersPath);
 
     void CreateInstance();
     void CreateSurface();
@@ -140,11 +142,12 @@ private:
 
     VkBuffer m_vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_vertexBufferMemory = VK_NULL_HANDLE;
+
     VkBuffer m_indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
-    VkImage  m_textureImage = VK_NULL_HANDLE;
-    VkDeviceMemory m_textureImageMemory = VK_NULL_HANDLE;
-    VkImageView m_textureImageView = VK_NULL_HANDLE;
+
+    GpuImage m_objectTexture;
+
     VkSampler m_textureSampler = VK_NULL_HANDLE;
 
     VkImage m_depthImage = VK_NULL_HANDLE;
@@ -191,11 +194,6 @@ private:
 
     std::vector<FrameObjects> m_frameObjects;
     uint32_t m_currentFrame = 0;
-
-    // synchronization objects
-    /*VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;*/
 
     // Swap chain related data
     VkFormat m_swapChainImageFormat = VK_FORMAT_UNDEFINED;
